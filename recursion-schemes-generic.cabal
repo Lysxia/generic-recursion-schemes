@@ -1,0 +1,41 @@
+name:                recursion-schemes-generic
+version:             0.1.0.0
+-- synopsis:
+-- description:
+homepage:            https://github.com/Lysxia/recursion-schemes-generic#readme
+license:             MIT
+license-file:        LICENSE
+author:              Li-yao Xia
+maintainer:          lysxia@gmail.com
+copyright:           2018 Li-yao Xia
+category:            Other
+build-type:          Simple
+extra-source-files:  README.md
+cabal-version:       >=1.10
+
+library
+  hs-source-dirs:      src
+  exposed-modules:
+    Data.Functor.Foldable.Generic
+  build-depends:
+    vinyl,
+    base >= 4.9 && < 5
+  ghc-options:         -Wall
+  default-language:    Haskell2010
+
+
+test-suite unittest-test
+  hs-source-dirs: test
+  main-is: unittest.hs
+  build-depends:
+    recursion-schemes-generic,
+    vinyl,
+    base
+  ghc-options: -Wall
+  default-language: Haskell2010
+  type: exitcode-stdio-1.0
+
+
+source-repository head
+  type:     git
+  location: https://github.com/Lysxia/recursion-schemes-generic
