@@ -35,6 +35,16 @@ test-suite unittest-test
   default-language: Haskell2010
   type: exitcode-stdio-1.0
 
+test-suite patterns-test
+  hs-source-dirs: test
+  main-is: patterns.hs
+  build-depends:
+    recursion-schemes-generic,
+    base
+  ghc-options: -Wall
+  default-language: Haskell2010
+  type: exitcode-stdio-1.0
+
 
 source-repository head
   type:     git
