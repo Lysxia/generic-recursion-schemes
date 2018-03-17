@@ -94,6 +94,9 @@ instance (GFromRec' rs rs' f, GFromRec' rs' rs'' g) => GFromRec' rs rs'' (f :*: 
 instance (rs ~ (r ': rs')) => GFromRec' rs rs' (K1 i r) where
   gFromRec' (Identity r :& rs) = (K1 r, rs)
 
+instance (rs ~ rs') => GFromRec' rs rs' U1 where
+  gFromRec' rs = (U1, rs)
+
 class UncurryRec rs z f where
   uncurryRec :: f -> (Rec Identity rs -> z)
 

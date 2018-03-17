@@ -7,18 +7,20 @@ import GHC.Generics
 
 import Generic.RecursionSchemes
 
-data Tree = Leaf Int | Node Tree Tree
+data Tree = End | Leaf Int | Node Tree Tree
   deriving Generic
 
 toList :: Tree -> [Int]
 toList = cata $ case_
+  & match @"End"  (\() -> [])
   & match @"Leaf" (\n -> [n])
   & match @"Node" (\(ns, ms) -> ns ++ ms)
 
 toList' :: Tree -> [Int]
 toList' = cata $ case_
-  & match_ @"Leaf" (\n -> [n])
   & match_ @"Node" (\ns ms -> ns ++ ms)
+  & match_ @"Leaf" (\n -> [n])
+  & match_ @"End"  []
 
 main :: IO ()
 main = do
