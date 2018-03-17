@@ -3,6 +3,7 @@ module Generic.RecursionSchemes
 
   , GBaseF
   , project
+  , GToSum
 
   , Sum(..)
   , case_
