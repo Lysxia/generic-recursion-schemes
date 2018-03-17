@@ -29,10 +29,20 @@ import GHC.TypeLits
 
 import Data.Vinyl
 
+-- | A sum of functors.
 data Sum (rs :: [(Symbol, * -> *)]) a where
   Here :: f a -> Sum ('(s, f) ': rs) a
   There :: Sum rs a -> Sum ('(s, f) ': rs) a
 
+-- | Pattern match on the empty sum.
+-- This can be used together with 'match' and derived functions
+-- to emulate a @case@ expression.
+case_ :: Sum '[] a -> b
+case_ v = case v of {}
+
+-- | Constraint that all elements in the list are functors.
+--
+-- Used to define the 'Functor' instance for 'Sum'.
 type family AllFunctorSnd (rs :: [(Symbol, * -> *)]) :: Constraint where
   AllFunctorSnd '[] = ()
   AllFunctorSnd ('(s, f) ': rs) = (Functor f, AllFunctorSnd rs)
@@ -42,8 +52,17 @@ instance AllFunctorSnd rs => Functor (Sum rs) where
   fmap f (Here a) = Here (fmap f a)
   fmap f (There a) = There (fmap f a)
 
-
 class Match c f rs rs' where
+  -- | Pattern-matching on a sum.
+  --
+  -- @
+  -- 'case_'
+  --   '&' 'match' \@\"C0\" (\('Identity' a) -> [a])
+  --   '&' 'match' \@\"C1\" ('id' :: [a] -> [a])
+  --   '&' 'match' \@\"C2\" 'Data.Maybe.maybeToList'
+  --   -- in any order
+  --   :: 'Sum' '[ '(\"C0\", 'Identity'), '(\"C1\", []), '(\"C2\", 'Maybe')] a -> [a]
+  -- @
   match :: (f a -> z) -> (Sum rs' a -> z) -> Sum rs a -> z
 
 instance Match0 c f c0 f0 rs rs' (c == c0)
@@ -105,6 +124,3 @@ instance (f ~ z) => UncurryRec '[] z f where
 
 instance (f ~ (r -> f'), UncurryRec rs z f') => UncurryRec (r ': rs) z f where
   uncurryRec f (Identity r :& rs) = uncurryRec (f r) rs
-
-case_ :: Sum '[] a -> b
-case_ v = case v of {}

@@ -38,17 +38,20 @@ import Generic.RecursionSchemes.Internal.TyFun
 -- For example with lists, the base functor of @[a]@ is isomorphic to:
 --
 -- @
--- -- With ListF from recursion-schemes
+-- -- From recursion-schemes
 -- data ListF a x = NilF | ConsF a x
 -- @
 --
--- Note that this implementation based on "GHC.Generics" has trouble with
--- parametric types, and it is often necessary to wrap type parameters
--- in 'Identity' and to apply coercions in a few places.
+-- With generic-recursion-schemes, the equivalent construction
+-- can be derived with 'GBaseF'.
 --
 -- @
 -- type ListF a = 'GBaseF' ['Identity' a]
 -- @
+--
+-- Note that this implementation, based on "GHC.Generics", has trouble with
+-- parametric types, and it is often necessary to wrap type parameters
+-- in 'Identity' and to apply coercions in a few places.
 type GBaseF a = Sum (ToSum a (Rep a))
 
 -- | Unwrap the base functor.
