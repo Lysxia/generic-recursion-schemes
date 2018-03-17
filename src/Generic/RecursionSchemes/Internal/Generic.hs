@@ -15,6 +15,8 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 
+-- | Catamorphisms with "GHC.Generics".
+
 module Generic.RecursionSchemes.Internal.Generic where
 
 import Data.Functor.Identity
@@ -30,6 +32,124 @@ import Data.Vinyl.TypeLevel
 import Generic.RecursionSchemes.Internal.Sum hiding (match)
 import qualified Generic.RecursionSchemes.Internal.Sum as Sum
 import Generic.RecursionSchemes.Internal.TyFun
+
+-- | The base functor of a generic type @a@.
+--
+-- For example with lists, the base functor of @[a]@ is isomorphic to:
+--
+-- @
+-- -- With ListF from recursion-schemes
+-- data ListF a x = NilF | ConsF a x
+-- @
+--
+-- Note that this implementation based on "GHC.Generics" has trouble with
+-- parametric types, and it is often necessary to wrap type parameters
+-- in 'Identity' and to apply coercions in a few places.
+--
+-- @
+-- type ListF a = 'GBaseF' ['Identity' a]
+-- @
+type GBaseF a = Sum (ToSum a (Rep a))
+
+-- | Unwrap the base functor.
+--
+-- For example with lists, this is equivalent to:
+--
+-- @
+-- -- With ListF from recursion-schemes
+-- project :: [a] -> ListF a [a]
+-- project []       = NilF
+-- project (a : as) = ConsF a as
+-- @
+project :: (Generic a, GToSum a) => a -> GBaseF a a
+project = repToSum . from
+
+-- | Fold a recursive structure.
+--
+-- For example, 'Data.List.foldr' is equivalent to:
+--
+-- @
+-- -- With ListF and cata from recursion-schemes
+-- foldr :: (a -> b -> b) -> b -> [a] -> b
+-- foldr f b = cata $ \\case
+--   NilF      -> b
+--   ConsF a b -> f a b
+-- @
+--
+-- With generic-recursion-schemes, this can be written as
+--
+-- @
+-- foldr :: (a -> b -> b) -> b -> [a] -> b
+-- foldr f b = 'cata' alg . ('Data.Coerce.coerce' :: [a] -> ['Identity' a]) where
+--   alg = 'case_'
+--     'Data.Function.&' 'match' \@\"[]\" (\\() -> b)
+--     'Data.Function.&' 'match' \@\":\"  (\\(a, b) -> f a b)
+-- @
+cata :: (Generic a, GToSum a, Functor (GBaseF a)) => (GBaseF a r -> r) -> a -> r
+cata f = fix $ \cata_f -> f . fmap cata_f . project
+
+-- | One branch in a pattern-match construct for a base functor represented
+-- as an extensible 'Sum'; the branch is given as an uncurried function.
+--
+-- See also 'match''.
+--
+-- For a sum equivalent to this type:
+--
+-- @
+-- data MyType
+--   = MyConstr0
+--   | MyConstr1 Int
+--   | MyConstr2 MyType MyType
+--   deriving 'Generic'
+-- @
+--
+-- Pattern-matching looks like this:
+--
+-- @
+-- 'case_'
+--   'Data.Function.&' 'match' \@\"MyConstr0\" (\\()     -> e)      -- 0 field: () (or any equivalent 'Generic' type)
+--   'Data.Function.&' 'match' \@\"MyConstr1\" (\\a      -> f a)    -- 1 field: unwrapped
+--   'Data.Function.&' 'match' \@\"MyConstr2\" (\\(a, b) -> g a b)  -- 2 fields or more: tuple (or any equivalent 'Generic' product type)
+--   -- in any order
+--   :: GBaseF MyType x -> y
+-- @
+match
+  :: forall c t z a rs ss ss'
+  .  (Match c (BaseConF rs) ss ss', FromRec (MapFromMaybe a rs) t)
+  => (t -> z) -> (Sum ss' a -> z) -> Sum ss a -> z
+match f = Sum.match @c @(BaseConF rs) (f . fromRec . mapRecFromMaybe . unBaseConF)
+
+-- | One branch in a pattern-match construct for a base functor represented as an
+-- extensible 'Sum'; the branch is given as a curried function.
+--
+-- See also 'match''.
+--
+-- @
+-- 'case_'
+--   'Data.Function.&' 'match_' \@\"MyConstr0\"          e
+--   'Data.Function.&' 'match_' \@\"MyConstr1\" (\\a   -> f a)
+--   'Data.Function.&' 'match_' \@\"MyConstr2\" (\\a b -> g a b)
+--   -- in any order
+--   :: GBaseF MyType x -> y
+-- @
+match_
+  :: forall c z f a rs ss ss'
+  .  (Match c (BaseConF rs) ss ss', UncurryRec (MapFromMaybe a rs) z f)
+  => f -> (Sum ss' a -> z) -> Sum ss a -> z
+match_ f = Sum.match @c @(BaseConF rs) (uncurryRec f . mapRecFromMaybe . unBaseConF)
+
+-- | Recursion schemes for generic types.
+class RepToSum a (Rep a) => GToSum a
+instance RepToSum a (Rep a) => GToSum a
+
+type family MapFromMaybe a (rs :: [Maybe *]) :: [*] where
+  MapFromMaybe a '[] = '[]
+  MapFromMaybe a (r ': rs) = FromMaybe a r ': MapFromMaybe a rs
+
+mapRecFromMaybe
+  :: Rec (FromMaybeF a) rs -> Rec Identity (MapFromMaybe a rs)
+mapRecFromMaybe RNil = RNil
+mapRecFromMaybe (FromMaybeF r :& rs) = Identity r :& mapRecFromMaybe rs
 
 mapRec
   :: forall c rs f g
@@ -105,35 +225,3 @@ instance DecEq e r => RepToProduct' e (M1 i c (K1 j r)) rs where
 
 instance RepToProduct' e U1 rs where
   repToProduct' U1 rs = rs
-
-type GBaseF e = Sum (ToSum e (Rep e))
-
-class RepToSum a (Rep a) => GToSum a
-instance RepToSum a (Rep a) => GToSum a
-
-project :: (Generic a, GToSum a) => a -> GBaseF a a
-project = repToSum . from
-
-cata :: (Generic a, GToSum a, Functor (GBaseF a)) => (GBaseF a r -> r) -> a -> r
-cata f = fix $ \cata_f -> f . fmap cata_f . project
-
-type family MapFromMaybe a (rs :: [Maybe *]) :: [*] where
-  MapFromMaybe a '[] = '[]
-  MapFromMaybe a (r ': rs) = FromMaybe a r ': MapFromMaybe a rs
-
-mapFromMaybe
-  :: Rec (FromMaybeF a) rs -> Rec Identity (MapFromMaybe a rs)
-mapFromMaybe RNil = RNil
-mapFromMaybe (FromMaybeF r :& rs) = Identity r :& mapFromMaybe rs
-
-match
-  :: forall c t z a rs ss ss'
-  .  (Match c (BaseConF rs) ss ss', FromRec (MapFromMaybe a rs) t)
-  => (t -> z) -> (Sum ss' a -> z) -> Sum ss a -> z
-match f = Sum.match @c @(BaseConF rs) (f . fromRec . mapFromMaybe . unBaseConF)
-
-match_
-  :: forall c z f a rs ss ss'
-  .  (Match c (BaseConF rs) ss ss', UncurryRec (MapFromMaybe a rs) z f)
-  => f -> (Sum ss' a -> z) -> Sum ss a -> z
-match_ f = Sum.match @c @(BaseConF rs) (uncurryRec f . mapFromMaybe . unBaseConF)

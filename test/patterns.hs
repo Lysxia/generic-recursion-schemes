@@ -21,6 +21,7 @@ toList' = cata $ case_
   & match_ @"Node" (\ns ms -> ns ++ ms)
   & match_ @"Leaf" (\n -> [n])
   & match_ @"End"  []
+  -- Branches in any order
 
 main :: IO ()
 main = do

@@ -1,16 +1,24 @@
+-- | Catamorphisms with "GHC.Generics".
+
 module Generic.RecursionSchemes
-  ( cata
+  ( -- * Generic catamorphisms
+    cata
 
   , GBaseF
   , project
   , GToSum
 
+    -- * Base functor representation
+
   , Sum(..)
   , case_
   , match
   , match_
+
+    -- *** Reexported from base
   , (&)
 
+    -- ** Inner wrappers
   , BaseConF(..)
   , FromMaybeF(..)
   ) where
