@@ -27,7 +27,7 @@ data Sum (rs :: [(Symbol, * -> *)]) a where
   There :: Sum rs a -> Sum ('(s, f) ': rs) a
 
 -- | Pattern match on the empty sum.
--- This can be used together with 'match' and derived functions
+-- This can be used together with 'Generic.RecursionSchemes.match' and derived functions
 -- to emulate a @case@ expression.
 case_ :: Sum '[] a -> b
 case_ v = case v of {}

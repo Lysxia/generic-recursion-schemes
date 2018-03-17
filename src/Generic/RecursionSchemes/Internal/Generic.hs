@@ -95,7 +95,7 @@ cata f = fix $ \cata_f -> f . fmap cata_f . project
 -- | One branch in a pattern-match construct for a base functor represented
 -- as an extensible 'Sum'; the branch is given as an uncurried function.
 --
--- See also 'match''.
+-- See also 'match_'.
 --
 -- For a sum equivalent to this type:
 --
@@ -126,7 +126,7 @@ match f = Sum.match @c @(BaseConF rs) (f . fromRec . mapRecFromMaybe . unBaseCon
 -- | One branch in a pattern-match construct for a base functor represented as an
 -- extensible 'Sum'; the branch is given as a curried function.
 --
--- See also 'match''.
+-- See also 'match'.
 --
 -- @
 -- 'case_'
