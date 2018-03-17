@@ -1,8 +1,12 @@
 name:                generic-recursion-schemes
 version:             0.1.0.0
--- synopsis:
--- description:
-homepage:            https://github.com/Lysxia/recursion-schemes-generic#readme
+synopsis:            Folds on recursive structures with GHC Generics
+description:
+
+  Derive <https://hackage.haskell.org/package/recursion-schemes recursion-schemes>
+  folds with GHC Generics.
+
+homepage:            https://github.com/Lysxia/generic-recursion-schemes#readme
 license:             MIT
 license-file:        LICENSE
 author:              Li-yao Xia
@@ -52,4 +56,4 @@ test-suite patterns-test
 
 source-repository head
   type:     git
-  location: https://github.com/Lysxia/recursion-schemes-generic
+  location: https://github.com/Lysxia/generic-recursion-schemes
