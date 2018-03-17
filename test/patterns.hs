@@ -5,15 +5,15 @@
 import Data.Function ((&))
 import GHC.Generics
 
-import Data.Functor.Foldable.Generic
+import Generic.RecursionSchemes
 
 data Tree = Leaf Int | Node Tree Tree
   deriving Generic
 
 toList :: Tree -> [Int]
 toList = cata $ case_
-  & match' @"Leaf" (\n -> [n])
-  & match' @"Node" (\(ns, ms) -> ns ++ ms)
+  & match @"Leaf" (\n -> [n])
+  & match @"Node" (\(ns, ms) -> ns ++ ms)
 
 toList' :: Tree -> [Int]
 toList' = cata $ case_

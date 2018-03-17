@@ -7,7 +7,7 @@ import Data.Function (fix)
 import Data.Functor.Identity
 import Data.Vinyl
 
-import Data.Functor.Foldable.Generic
+import Generic.RecursionSchemes
 
 main :: IO ()
 main = do
