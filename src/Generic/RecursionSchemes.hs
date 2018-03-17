@@ -2,10 +2,10 @@
 
 module Generic.RecursionSchemes
   ( -- * Generic catamorphisms
-    cata
+    gcata
 
-  , GBaseF
-  , project
+  , GBase
+  , gproject
   , GToSum
 
     -- * Base functor representation

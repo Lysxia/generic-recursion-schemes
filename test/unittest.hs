@@ -17,7 +17,7 @@ main = do
   assertEq (cataList' f [1,2,3]) 6
 
 cataList :: (ListF b a -> a) -> [b] -> a
-cataList f = cata (f . ListF) . (coerce :: [b] -> [Identity b])
+cataList f = gcata (f . ListF) . (coerce :: [b] -> [Identity b])
 
 cataList' :: (ListF b a -> a) -> [b] -> a
 cataList' f = fix $ \cata_f -> f . fmap cata_f . projectList
@@ -33,7 +33,7 @@ assertEq a b = do
   else
     fail $ show a ++ " /= " ++ show b
 
-newtype ListF b a = ListF (GBaseF [Identity b] a)
+newtype ListF b a = ListF (GBase [Identity b] a)
   deriving Functor
 
 pattern NilF :: ListF b a

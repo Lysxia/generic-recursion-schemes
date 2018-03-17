@@ -44,16 +44,16 @@ import Generic.RecursionSchemes.Internal.Vinyl
 -- @
 --
 -- With generic-recursion-schemes, the equivalent construction
--- can be derived with 'GBaseF'.
+-- can be derived with 'GBase'.
 --
 -- @
--- type ListF a = 'GBaseF' ['Identity' a]
+-- type ListF a = 'GBase' ['Identity' a]
 -- @
 --
 -- Note that this implementation, based on "GHC.Generics", has trouble with
 -- parametric types, and it is often necessary to wrap type parameters
 -- in 'Identity' and to apply coercions in a few places.
-type GBaseF a = Sum (ToSum a (Rep a))
+type GBase a = Sum (ToSum a (Rep a))
 
 -- | Unwrap the base functor.
 --
@@ -65,8 +65,8 @@ type GBaseF a = Sum (ToSum a (Rep a))
 -- project []       = NilF
 -- project (a : as) = ConsF a as
 -- @
-project :: (Generic a, GToSum a) => a -> GBaseF a a
-project = repToSum . from
+gproject :: (Generic a, GToSum a) => a -> GBase a a
+gproject = repToSum . from
 
 -- | Fold a recursive structure.
 --
@@ -84,13 +84,13 @@ project = repToSum . from
 --
 -- @
 -- foldr :: (a -> b -> b) -> b -> [a] -> b
--- foldr f b = 'cata' alg . ('Data.Coerce.coerce' :: [a] -> ['Identity' a]) where
+-- foldr f b = 'gcata' alg . ('Data.Coerce.coerce' :: [a] -> ['Identity' a]) where
 --   alg = 'case_'
 --     'Data.Function.&' 'match' \@\"[]\" (\\() -> b)
 --     'Data.Function.&' 'match' \@\":\"  (\\(a, b) -> f a b)
 -- @
-cata :: (Generic a, GToSum a, Functor (GBaseF a)) => (GBaseF a r -> r) -> a -> r
-cata f = fix $ \cata_f -> f . fmap cata_f . project
+gcata :: (Generic a, GToSum a, Functor (GBase a)) => (GBase a r -> r) -> a -> r
+gcata f = fix $ \cata_f -> f . fmap cata_f . gproject
 
 -- | One branch in a pattern-match construct for a base functor represented
 -- as an extensible 'Sum'; the branch is given as an uncurried function.
@@ -115,7 +115,7 @@ cata f = fix $ \cata_f -> f . fmap cata_f . project
 --   'Data.Function.&' 'match' \@\"MyConstr1\" (\\a      -> f a)    -- 1 field: unwrapped
 --   'Data.Function.&' 'match' \@\"MyConstr2\" (\\(a, b) -> g a b)  -- 2 fields or more: tuple (or any equivalent 'Generic' product type)
 --   -- in any order
---   :: 'GBaseF' MyType x -> y
+--   :: 'GBase' MyType x -> y
 -- @
 match
   :: forall c t z a rs ss ss'
@@ -134,7 +134,7 @@ match f = Sum.match @c @(BaseConF rs) (f . fromRec . mapRecFromMaybe . unBaseCon
 --   'Data.Function.&' 'match_' \@\"MyConstr1\" (\\a   -> f a)
 --   'Data.Function.&' 'match_' \@\"MyConstr2\" (\\a b -> g a b)
 --   -- in any order
---   :: 'GBaseF' MyType x -> y
+--   :: 'GBase' MyType x -> y
 -- @
 match_
   :: forall c z f a rs ss ss'
