@@ -20,6 +20,7 @@ library
     Generic.RecursionSchemes.Internal.Generic
     Generic.RecursionSchemes.Internal.Sum
     Generic.RecursionSchemes.Internal.TyFun
+    Generic.RecursionSchemes.Internal.Vinyl
   build-depends:
     vinyl,
     base >= 4.9 && < 5

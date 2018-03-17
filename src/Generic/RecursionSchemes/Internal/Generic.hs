@@ -32,6 +32,7 @@ import Data.Vinyl.TypeLevel
 import Generic.RecursionSchemes.Internal.Sum hiding (match)
 import qualified Generic.RecursionSchemes.Internal.Sum as Sum
 import Generic.RecursionSchemes.Internal.TyFun
+import Generic.RecursionSchemes.Internal.Vinyl
 
 -- | The base functor of a generic type @a@.
 --
@@ -153,13 +154,6 @@ mapRecFromMaybe
   :: Rec (FromMaybeF a) rs -> Rec Identity (MapFromMaybe a rs)
 mapRecFromMaybe RNil = RNil
 mapRecFromMaybe (FromMaybeF r :& rs) = Identity r :& mapRecFromMaybe rs
-
-mapRec
-  :: forall c rs f g
-  .  AllConstrained c rs
-  => (forall a. c a => f a -> g a) -> Rec f rs -> Rec g rs
-mapRec _ RNil = RNil
-mapRec f (r :& rs) = f r :& mapRec @c f rs
 
 newtype FromMaybeF a m = FromMaybeF (FromMaybe a m)
 
