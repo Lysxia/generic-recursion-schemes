@@ -115,7 +115,7 @@ cata f = fix $ \cata_f -> f . fmap cata_f . project
 --   'Data.Function.&' 'match' \@\"MyConstr1\" (\\a      -> f a)    -- 1 field: unwrapped
 --   'Data.Function.&' 'match' \@\"MyConstr2\" (\\(a, b) -> g a b)  -- 2 fields or more: tuple (or any equivalent 'Generic' product type)
 --   -- in any order
---   :: GBaseF MyType x -> y
+--   :: 'GBaseF' MyType x -> y
 -- @
 match
   :: forall c t z a rs ss ss'
@@ -134,7 +134,7 @@ match f = Sum.match @c @(BaseConF rs) (f . fromRec . mapRecFromMaybe . unBaseCon
 --   'Data.Function.&' 'match_' \@\"MyConstr1\" (\\a   -> f a)
 --   'Data.Function.&' 'match_' \@\"MyConstr2\" (\\a b -> g a b)
 --   -- in any order
---   :: GBaseF MyType x -> y
+--   :: 'GBaseF' MyType x -> y
 -- @
 match_
   :: forall c z f a rs ss ss'
