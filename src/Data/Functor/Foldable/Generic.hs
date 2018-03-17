@@ -18,6 +18,8 @@
 
 module Data.Functor.Foldable.Generic where
 
+import Data.Bifunctor
+import Data.Functor.Identity
 import Data.Function (fix)
 import Data.Kind
 import Data.Type.Bool
@@ -76,7 +78,7 @@ mapFromMaybeF
   => (a -> b) -> FromMaybeF a m -> FromMaybeF b m
 mapFromMaybeF f (FromMaybeF m) = FromMaybeF (maybe' @m (f m) m)
 
-newtype BaseConF rs a = BaseConF (Rec (FromMaybeF a) rs)
+newtype BaseConF rs a = BaseConF { unBaseConF :: Rec (FromMaybeF a) rs }
 
 instance AllConstrained IsMaybe rs => Functor (BaseConF rs) where
   fmap f (BaseConF r) = BaseConF (mapRec @IsMaybe (mapFromMaybeF f) r)
@@ -159,3 +161,87 @@ project = repToSum . from
 
 cata :: (Generic a, GToSum a, Functor (GBaseF a)) => (GBaseF a r -> r) -> a -> r
 cata f = fix $ \cata_f -> f . fmap cata_f . project
+
+class Match c f rs rs' where
+  match :: (f a -> z) -> (Sum rs' a -> z) -> Sum rs a -> z
+
+instance Match0 c f c0 f0 rs rs' (c == c0)
+  => Match c f ('(c0, f0) ': rs) rs' where
+  match = match0 @c
+
+class (eq ~ (c == c0)) => Match0 c f c0 f0 rs rs' eq where
+  match0 :: (f a -> z) -> (Sum rs' a -> z) -> Sum ('(c0, f0) ': rs) a -> z
+
+instance (c ~ c0, f ~ f0, rs ~ rs') => Match0 c f c0 f0 rs rs' 'True where
+  match0 f _ (Here a) = f a
+  match0 _ g (There a) = g a
+
+instance ('False ~ (c == c0), rs' ~ ('(c0, f0) ': rs''), Match c f rs rs'')
+  => Match0 c f c0 f0 rs rs' 'False where
+  match0 _ g (Here a) = g (Here a)
+  match0 f g (There a) = match @c f (g . There) a
+
+type family MapFromMaybe a (rs :: [Maybe *]) :: [*] where
+  MapFromMaybe a '[] = '[]
+  MapFromMaybe a (r ': rs) = FromMaybe a r ': MapFromMaybe a rs
+
+mapFromMaybe
+  :: Rec (FromMaybeF a) rs -> Rec Identity (MapFromMaybe a rs)
+mapFromMaybe RNil = RNil
+mapFromMaybe (FromMaybeF r :& rs) = Identity r :& mapFromMaybe rs
+
+class FromRec rs t where
+  fromRec :: Rec Identity rs -> t
+
+instance (Generic t, GFromRec '[] t) => FromRec '[] t where
+  fromRec = gFromRec
+
+instance (r ~ r') => FromRec '[r] r' where
+  fromRec (Identity a :& RNil) = a
+
+instance (Generic t, GFromRec (r ': r2 ': rs) t) => FromRec (r ': r2 ': rs) t where
+  fromRec = gFromRec
+
+type GFromRec rs a = GFromRec' rs '[] (Rep a)
+
+gFromRec :: (Generic a, GFromRec rs a) => Rec Identity rs -> a
+gFromRec = to . fst . gFromRec' @_ @'[]
+
+class GFromRec' rs rs' f where
+  gFromRec' :: Rec Identity rs -> (f p, Rec Identity rs')
+
+instance GFromRec' rs rs' f => GFromRec' rs rs' (M1 i c f) where
+  gFromRec' = first M1 . gFromRec'
+
+instance (GFromRec' rs rs' f, GFromRec' rs' rs'' g) => GFromRec' rs rs'' (f :*: g) where
+  gFromRec' rs =
+    let (f, rs') = gFromRec' rs
+        (g, rs'') = gFromRec' @rs' rs'
+    in (f :*: g, rs'')
+
+instance (rs ~ (r ': rs')) => GFromRec' rs rs' (K1 i r) where
+  gFromRec' (Identity r :& rs) = (K1 r, rs)
+
+match'
+  :: forall c t z a rs ss ss'
+  .  (Match c (BaseConF rs) ss ss', FromRec (MapFromMaybe a rs) t)
+  => (t -> z) -> (Sum ss' a -> z) -> Sum ss a -> z
+match' f = match @c @(BaseConF rs) (f . fromRec . mapFromMaybe . unBaseConF)
+
+class UncurryRec rs z f where
+  uncurryRec :: f -> (Rec Identity rs -> z)
+
+instance (f ~ z) => UncurryRec '[] z f where
+  uncurryRec z RNil = z
+
+instance (f ~ (r -> f'), UncurryRec rs z f') => UncurryRec (r ': rs) z f where
+  uncurryRec f (Identity r :& rs) = uncurryRec (f r) rs
+
+match_
+  :: forall c z f a rs ss ss'
+  .  (Match c (BaseConF rs) ss ss', UncurryRec (MapFromMaybe a rs) z f)
+  => f -> (Sum ss' a -> z) -> Sum ss a -> z
+match_ f = match @c @(BaseConF rs) (uncurryRec f . mapFromMaybe . unBaseConF)
+
+case_ :: Sum '[] a -> b
+case_ v = case v of {}
