@@ -1,5 +1,7 @@
 # Generic catamorphisms
 
+Derive folds on recursive types.
+
 This library is compatible with the
 [*recursion-schemes*](https://hackage.haskell.org/package/recursion-schemes)
 library, and uses GHC Generics instead of Template Haskell to derive base
