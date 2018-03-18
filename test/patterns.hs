@@ -4,6 +4,7 @@
 
 import Data.Function ((&))
 import GHC.Generics
+import GHC.TypeLits ()  -- missing type instances on GHC 8.0
 
 import Generic.RecursionSchemes
 
