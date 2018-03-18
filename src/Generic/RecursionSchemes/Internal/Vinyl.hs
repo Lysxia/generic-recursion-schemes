@@ -16,6 +16,7 @@
 
 module Generic.RecursionSchemes.Internal.Vinyl where
 
+import Control.Applicative
 import Data.Bifunctor
 import Data.Functor.Identity
 import GHC.Generics
@@ -29,6 +30,20 @@ mapRec
   => (forall a. c a => f a -> g a) -> Rec f rs -> Rec g rs
 mapRec _ RNil = RNil
 mapRec f (r :& rs) = f r :& mapRec @c f rs
+
+foldRec
+  :: forall c rs f b
+  .  AllConstrained c rs
+  => (forall a. c a => f a -> b -> b) -> b -> Rec f rs -> b
+foldRec _ b RNil = b
+foldRec f b (r :& rs) = f r (foldRec @c f b rs)
+
+traverseRec
+  :: forall c rs f g m
+  .  (AllConstrained c rs, Applicative m)
+  => (forall a. c a => f a -> m (g a)) -> Rec f rs -> m (Rec g rs)
+traverseRec _ RNil = pure RNil
+traverseRec f (r :& rs) = liftA2 (:&) (f r) (traverseRec @c f rs)
 
 class FromRec rs t where
   fromRec :: Rec Identity rs -> t

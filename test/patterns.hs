@@ -24,11 +24,15 @@ toList' = gcata $ case_
   & match_ @"End"  []
   -- Branches in any order
 
+size :: Tree -> Int
+size = gcata $ foldr (+) 1
+
 main :: IO ()
 main = do
   let t = Node (Node (Leaf 0) (Leaf 1)) (Leaf 2)
   assertEq (toList  t) [0, 1, 2]
   assertEq (toList' t) [0, 1, 2]
+  assertEq (size t) 5
 
 assertEq :: (Eq a, Show a) => a -> a -> IO ()
 assertEq a b = do

@@ -36,14 +36,24 @@ case_ v = case v of {}
 -- | Constraint that all elements in the list are functors.
 --
 -- Used to define the 'Functor' instance for 'Sum'.
-type family AllFunctorSnd (rs :: [(Symbol, * -> *)]) :: Constraint where
-  AllFunctorSnd '[] = ()
-  AllFunctorSnd ('(s, f) ': rs) = (Functor f, AllFunctorSnd rs)
+type family AllSnd (c :: (* -> *) -> Constraint) (rs :: [(Symbol, * -> *)])
+  :: Constraint where
+  AllSnd c '[] = ()
+  AllSnd c ('(s, f) ': rs) = (c f, AllSnd c rs)
 
-instance AllFunctorSnd rs => Functor (Sum rs) where
+instance AllSnd Functor rs => Functor (Sum rs) where
   fmap :: (a -> b) -> Sum rs a -> Sum rs b
   fmap f (Here a) = Here (fmap f a)
   fmap f (There a) = There (fmap f a)
+
+instance (AllSnd Functor rs, AllSnd Foldable rs) => Foldable (Sum rs) where
+  foldr f b (Here a) = foldr f b a
+  foldr f b (There a) = foldr f b a
+
+instance (AllSnd Functor rs, AllSnd Foldable rs, AllSnd Traversable rs)
+  => Traversable (Sum rs) where
+  traverse f (Here a) = Here <$> traverse f a
+  traverse f (There a) = There <$> traverse f a
 
 class Match c f rs rs' where
   -- | Pattern-matching on a sum.

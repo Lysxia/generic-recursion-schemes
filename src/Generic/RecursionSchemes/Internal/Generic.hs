@@ -162,10 +162,28 @@ mapFromMaybeF
   => (a -> b) -> FromMaybeF a m -> FromMaybeF b m
 mapFromMaybeF f (FromMaybeF m) = FromMaybeF (maybe' @m (f m) m)
 
+foldFromMaybeF
+  :: forall m a b
+  .  IsMaybe m
+  => (a -> b -> b) -> FromMaybeF a m -> b -> b
+foldFromMaybeF f (FromMaybeF m) = maybe' @m (f m) id
+
+traverseFromMaybeF
+  :: forall m a b f
+  .  (IsMaybe m, Applicative f)
+  => (a -> f b) -> FromMaybeF a m -> f (FromMaybeF b m)
+traverseFromMaybeF f (FromMaybeF m) = FromMaybeF <$> maybe' @m (f m) (pure m)
+
 newtype BaseConF rs a = BaseConF { unBaseConF :: Rec (FromMaybeF a) rs }
 
 instance AllConstrained IsMaybe rs => Functor (BaseConF rs) where
   fmap f (BaseConF r) = BaseConF (mapRec @IsMaybe (mapFromMaybeF f) r)
+
+instance AllConstrained IsMaybe rs => Foldable (BaseConF rs) where
+  foldr f b (BaseConF r) = foldRec @IsMaybe (foldFromMaybeF f) b r
+
+instance AllConstrained IsMaybe rs => Traversable (BaseConF rs) where
+  traverse f (BaseConF r) = BaseConF <$> traverseRec @IsMaybe (traverseFromMaybeF f) r
 
 type ToRec e f = ToRec' e f '[]
 
