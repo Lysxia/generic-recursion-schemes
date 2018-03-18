@@ -19,7 +19,13 @@
 
 module Generic.RecursionSchemes.Internal.TyFun where
 
-import Data.Type.Equality
+-- | This type is different from @('Data.Type.Equality.==')@ from
+-- "Data.Type.Equality", which has an extra clause
+-- @f a == g b = f == g && a == b@ since GHC 8.4 that prevents
+-- it from reducing in various places.
+type family a == b where
+  a == a = 'True
+  a == b = 'False
 
 class IsBool b where
   bool' :: ((b ~ 'True) => r) -> ((b ~ 'False) => r) -> r

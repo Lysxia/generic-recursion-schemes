@@ -18,8 +18,9 @@
 module Generic.RecursionSchemes.Internal.Sum where
 
 import Data.Kind
-import Data.Type.Equality
 import GHC.TypeLits
+
+import Generic.RecursionSchemes.Internal.TyFun (type (==))
 
 -- | A sum of functors.
 data Sum (rs :: [(Symbol, * -> *)]) a where

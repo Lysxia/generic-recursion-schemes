@@ -22,7 +22,6 @@ module Generic.RecursionSchemes.Internal.Generic where
 import Data.Functor.Identity
 import Data.Function (fix)
 import Data.Type.Bool
-import Data.Type.Equality
 import GHC.Generics
 import GHC.TypeLits
 
