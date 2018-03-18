@@ -1,4 +1,4 @@
-# Generic catamorphisms
+# Generic catamorphisms [![Build Status](https://travis-ci.org/Lysxia/generic-recursion-schemes.svg?branch=master)](https://travis-ci.org/Lysxia/generic-recursion-schemes)
 
 Derive folds on recursive types.
 
