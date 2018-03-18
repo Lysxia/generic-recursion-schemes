@@ -1,7 +1,11 @@
 # Generic catamorphisms
 
-This library is compatible with the *recursion-schemes* library,
-and uses GHC Generics instead of Template Haskell to derive base functors.
+This library is compatible with the
+[*recursion-schemes*](https://hackage.haskell.org/package/recursion-schemes)
+library, and uses GHC Generics instead of Template Haskell to derive base
+functors and recursion combinators.
+
+`gcata` can also be used directly, without defining `Recursive` instances.
 
 ```haskell
 {-# LANGUAGE DeriveGeneric #-}
@@ -24,5 +28,3 @@ toList = cata $ case_
   & match @"Leaf" (\n -> [n])
   & match @"Node" (\(ns, ms) -> ns ++ ms)
 ```
-
-`gcata` can also be used directly, without defining `Recursive` instances.
