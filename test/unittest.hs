@@ -11,8 +11,8 @@ import Generic.RecursionSchemes
 
 main :: IO ()
 main = do
-  let f NilF = 0
-      f (ConsF n m) = n + m :: Int
+  let f Nil = 0
+      f (Cons n m) = n + m :: Int
   assertEq (cataList  f [1,2,3]) 6
   assertEq (cataList' f [1,2,3]) 6
 
@@ -23,8 +23,8 @@ cataList' :: (ListF b a -> a) -> [b] -> a
 cataList' f = fix $ \cata_f -> f . fmap cata_f . projectList
 
 projectList :: [b] -> ListF b [b]
-projectList [] = NilF
-projectList (b : bs) = ConsF b bs
+projectList [] = Nil
+projectList (b : bs) = Cons b bs
 
 assertEq :: (Eq a, Show a) => a -> a -> IO ()
 assertEq a b = do
@@ -36,11 +36,11 @@ assertEq a b = do
 newtype ListF b a = ListF (GBase [Identity b] a)
   deriving Functor
 
-pattern NilF :: ListF b a
-pattern NilF = ListF (Here (BaseConF RNil))
+pattern Nil :: ListF b a
+pattern Nil = ListF (Here (BaseConF RNil))
 
-pattern ConsF :: b -> a -> ListF b a
-pattern ConsF h t =
+pattern Cons :: b -> a -> ListF b a
+pattern Cons h t =
   ListF (There (Here (BaseConF (FromMaybeF (Identity h) :& FromMaybeF t :& RNil))))
 
-{-# COMPLETE NilF, ConsF #-}
+{-# COMPLETE Nil, Cons #-}

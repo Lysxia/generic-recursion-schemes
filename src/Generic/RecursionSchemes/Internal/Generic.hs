@@ -40,7 +40,7 @@ import Generic.RecursionSchemes.Internal.Vinyl
 --
 -- @
 -- -- From recursion-schemes
--- data ListF a x = NilF | ConsF a x
+-- data ListF a x = Nil | Cons a x
 -- @
 --
 -- With generic-recursion-schemes, the equivalent construction
@@ -62,8 +62,8 @@ type GBase a = Sum (ToSum a (Rep a))
 -- @
 -- -- With ListF from recursion-schemes
 -- project :: [a] -> ListF a [a]
--- project []       = NilF
--- project (a : as) = ConsF a as
+-- project []       = Nil
+-- project (a : as) = Cons a as
 -- @
 gproject :: (Generic a, GToSum a) => a -> GBase a a
 gproject = repToSum . from
@@ -76,8 +76,8 @@ gproject = repToSum . from
 -- -- With ListF and cata from recursion-schemes
 -- foldr :: (a -> b -> b) -> b -> [a] -> b
 -- foldr f b = cata $ \\case
---   NilF      -> b
---   ConsF a b -> f a b
+--   Nil      -> b
+--   Cons a b -> f a b
 -- @
 --
 -- With generic-recursion-schemes, this can be written as
