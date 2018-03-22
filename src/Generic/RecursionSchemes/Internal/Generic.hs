@@ -236,6 +236,7 @@ instance DecEq e r => RepToProduct' e (M1 i c (K1 j r)) rs where
   repToProduct' (M1 (K1 r)) rs = decEq @e @r
     (FromMaybeF r :& rs)
     (FromMaybeF r :& rs)
+  {-# INLINE repToProduct' #-}
 
 instance RepToProduct' e U1 rs where
   repToProduct' U1 rs = rs
