@@ -17,7 +17,6 @@
 
 module Generic.RecursionSchemes.Internal.Sum where
 
-import Data.Kind
 import GHC.TypeLits
 
 import Generic.RecursionSchemes.Internal.TyFun (type (==))
@@ -33,27 +32,45 @@ data Sum (rs :: [(Symbol, * -> *)]) a where
 case_ :: Sum '[] a -> b
 case_ v = case v of {}
 
--- | Constraint that all elements in the list are functors.
---
--- Used to define the 'Functor' instance for 'Sum'.
-type family AllSnd (c :: (* -> *) -> Constraint) (rs :: [(Symbol, * -> *)])
-  :: Constraint where
-  AllSnd c '[] = ()
-  AllSnd c ('(s, f) ': rs) = (c f, AllSnd c rs)
-
-instance AllSnd Functor rs => Functor (Sum rs) where
+instance FunctorSum rs => Functor (Sum rs) where
   fmap :: (a -> b) -> Sum rs a -> Sum rs b
-  fmap f (Here a) = Here (fmap f a)
-  fmap f (There a) = There (fmap f a)
+  fmap = fmapSum
 
-instance (AllSnd Functor rs, AllSnd Foldable rs) => Foldable (Sum rs) where
-  foldr f b (Here a) = foldr f b a
-  foldr f b (There a) = foldr f b a
+class FunctorSum rs where
+  fmapSum :: (a -> b) -> Sum rs a -> Sum rs b
 
-instance (AllSnd Functor rs, AllSnd Foldable rs, AllSnd Traversable rs)
-  => Traversable (Sum rs) where
-  traverse f (Here a) = Here <$> traverse f a
-  traverse f (There a) = There <$> traverse f a
+instance FunctorSum '[] where
+  fmapSum _ = case_
+
+instance (Functor f, FunctorSum rs) => FunctorSum ('(s, f) ': rs) where
+  fmapSum f (Here a) = Here (fmap f a)
+  fmapSum f (There a) = There (fmapSum f a)
+
+instance FoldableSum rs => Foldable (Sum rs) where
+  foldr = foldrSum
+
+class FoldableSum rs where
+  foldrSum :: (a -> b -> b) -> b -> Sum rs a -> b
+
+instance FoldableSum '[] where
+  foldrSum _ _ = case_
+
+instance (Foldable f, FoldableSum rs) => FoldableSum ('(s, f) ': rs) where
+  foldrSum f b (Here a) = foldr f b a
+  foldrSum f b (There a) = foldrSum f b a
+
+instance TraversableSum rs => Traversable (Sum rs) where
+  traverse = traverseSum
+
+class (FunctorSum rs, FoldableSum rs) => TraversableSum rs where
+  traverseSum :: Applicative m => (a -> m b) -> Sum rs a -> m (Sum rs b)
+
+instance TraversableSum '[] where
+  traverseSum _ = case_
+
+instance (Traversable f, TraversableSum rs) => TraversableSum ('(s, f) ': rs) where
+  traverseSum f (Here a) = Here <$> traverse f a
+  traverseSum f (There a) = There <$> traverseSum f a
 
 class Match c f rs rs' where
   -- | Pattern-matching on a sum.
