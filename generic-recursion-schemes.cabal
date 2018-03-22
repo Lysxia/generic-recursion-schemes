@@ -33,9 +33,9 @@ library
   default-language:    Haskell2010
 
 
-test-suite unittest-test
+test-suite list-test
   hs-source-dirs: test
-  main-is: unittest.hs
+  main-is: list.hs
   build-depends:
     generic-recursion-schemes,
     vinyl,
