@@ -1,11 +1,14 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -O -fplugin Test.Inspection.Plugin #-}
 
 import Data.Coerce (coerce)
 import Data.Function (fix)
 import Data.Functor.Identity
 import Data.Vinyl
+import Test.Inspection
 
 import Generic.RecursionSchemes
 
@@ -52,3 +55,5 @@ pattern Cons h t =
   ListF (There (Here (BaseConF (FromMaybeF (Identity h) :& FromMaybeF t :& RNil))))
 
 {-# COMPLETE Nil, Cons #-}
+
+inspect $ 'sum0 === 'sum0'

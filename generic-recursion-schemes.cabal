@@ -38,6 +38,7 @@ test-suite list-test
   main-is: list.hs
   build-depends:
     generic-recursion-schemes,
+    inspection-testing,
     vinyl,
     base
   ghc-options: -Wall
