@@ -236,10 +236,7 @@ instance (RepToProduct' e f (ToRec' e g rs), RepToProduct' e g rs)
   repToProduct' (f :*: g) rs = repToProduct' f (repToProduct' g rs)
 
 instance DecEq e r => RepToProduct' e (M1 i c (K1 j r)) rs where
-  repToProduct' (M1 (K1 r)) rs = decEq @e @r
-    (FromMaybeF r :& rs)
-    (FromMaybeF r :& rs)
-  {-# INLINE repToProduct' #-}
+  repToProduct' (M1 (K1 r)) rs = FromMaybeF (decEq @e @r r r) :& rs
 
 instance RepToProduct' e U1 rs where
   repToProduct' U1 rs = rs
