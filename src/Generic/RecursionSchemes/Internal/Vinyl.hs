@@ -22,28 +22,35 @@ import Data.Functor.Identity
 import GHC.Generics
 
 import Data.Vinyl
-import Data.Vinyl.TypeLevel
 
-mapRec
-  :: forall c rs f g
-  .  AllConstrained c rs
-  => (forall a. c a => f a -> g a) -> Rec f rs -> Rec g rs
-mapRec _ RNil = RNil
-mapRec f (r :& rs) = f r :& mapRec @c f rs
+class MapRec c rs where
+  mapRec :: (forall a. c a => f a -> g a) -> Rec f rs -> Rec g rs
 
-foldRec
-  :: forall c rs f b
-  .  AllConstrained c rs
-  => (forall a. c a => f a -> b -> b) -> b -> Rec f rs -> b
-foldRec _ b RNil = b
-foldRec f b (r :& rs) = f r (foldRec @c f b rs)
+instance MapRec c '[] where
+  mapRec _ RNil = RNil
 
-traverseRec
-  :: forall c rs f g m
-  .  (AllConstrained c rs, Applicative m)
-  => (forall a. c a => f a -> m (g a)) -> Rec f rs -> m (Rec g rs)
-traverseRec _ RNil = pure RNil
-traverseRec f (r :& rs) = liftA2 (:&) (f r) (traverseRec @c f rs)
+instance (c a, MapRec c rs) => MapRec c (a ': rs) where
+  mapRec f (r :& rs) = f r :& mapRec @c f rs
+
+class FoldRec c rs where
+  foldRec :: (forall a. c a => f a -> b -> b) -> b -> Rec f rs -> b
+
+instance FoldRec c '[] where
+  foldRec _ b RNil = b
+
+instance (c a, FoldRec c rs) => FoldRec c (a ': rs) where
+  foldRec f b (r :& rs) = f r (foldRec @c f b rs)
+
+class TraverseRec c rs where
+  traverseRec
+    :: Applicative m
+    => (forall a. c a => f a -> m (g a)) -> Rec f rs -> m (Rec g rs)
+
+instance TraverseRec c '[] where
+  traverseRec _ RNil = pure RNil
+
+instance (c a, TraverseRec c rs) => TraverseRec c (a ': rs) where
+  traverseRec f (r :& rs) = liftA2 (:&) (f r) (traverseRec @c f rs)
 
 class FromRec rs t where
   fromRec :: Rec Identity rs -> t

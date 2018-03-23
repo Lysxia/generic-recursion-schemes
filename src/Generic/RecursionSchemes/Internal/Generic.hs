@@ -26,7 +26,6 @@ import GHC.Generics
 import GHC.TypeLits
 
 import Data.Vinyl
-import Data.Vinyl.TypeLevel
 
 import Generic.RecursionSchemes.Internal.Sum hiding (match)
 import qualified Generic.RecursionSchemes.Internal.Sum as Sum
@@ -176,13 +175,14 @@ traverseFromMaybeF f (FromMaybeF m) = FromMaybeF <$> maybe' @m (f m) (pure m)
 
 newtype BaseConF rs a = BaseConF { unBaseConF :: Rec (FromMaybeF a) rs }
 
-instance AllConstrained IsMaybe rs => Functor (BaseConF rs) where
+instance MapRec IsMaybe rs => Functor (BaseConF rs) where
   fmap f (BaseConF r) = BaseConF (mapRec @IsMaybe (mapFromMaybeF f) r)
 
-instance AllConstrained IsMaybe rs => Foldable (BaseConF rs) where
+instance FoldRec IsMaybe rs => Foldable (BaseConF rs) where
   foldr f b (BaseConF r) = foldRec @IsMaybe (foldFromMaybeF f) b r
 
-instance AllConstrained IsMaybe rs => Traversable (BaseConF rs) where
+instance (MapRec IsMaybe rs, FoldRec IsMaybe rs, TraverseRec IsMaybe rs)
+  => Traversable (BaseConF rs) where
   traverse f (BaseConF r) = BaseConF <$> traverseRec @IsMaybe (traverseFromMaybeF f) r
 
 type ToRec e f = ToRec' e f '[]
