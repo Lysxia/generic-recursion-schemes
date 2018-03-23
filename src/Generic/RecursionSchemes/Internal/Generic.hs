@@ -175,11 +175,6 @@ gembed = to . sumToRep
 --
 -- @
 -- fib :: (Int, Int) -> [Int]
--- fib = 'gana'
--- f b = 'gcata' alg . ('Data.Coerce.coerce' :: [a] -> ['Identity' a]) where
---   alg = 'case_'
---     'Data.Function.&' 'match' \@\"[]\" (\\() -> b)
---     'Data.Function.&' 'match' \@\":\"  (\\(a, b) -> f a b)
 -- @
 gana :: (Generic a, GFromSum a, Functor (GBase a)) => (r -> GBase a r) -> r -> a
 gana f = fix $ \ana_f -> gembed . fmap ana_f . f

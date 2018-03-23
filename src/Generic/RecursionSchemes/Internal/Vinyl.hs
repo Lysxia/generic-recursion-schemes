@@ -87,6 +87,28 @@ instance (rs ~ (r ': rs')) => GFromRec' rs rs' (K1 i r) where
 instance (rs ~ rs') => GFromRec' rs rs' U1 where
   gFromRec' rs = (U1, rs)
 
+
+type GToRec rs a = GToRec' rs '[] (Rep a)
+
+gToRec :: (Generic a, GToRec rs a) => a -> Rec Identity rs
+gToRec a = gToRec' (from a) RNil
+
+class GToRec' rs rs' f where
+  gToRec' :: f p -> Rec Identity rs' -> Rec Identity rs
+
+instance GToRec' rs rs' f => GToRec' rs rs' (M1 i c f) where
+  gToRec' = gToRec' . unM1
+
+instance (GToRec' rs rs' f, GToRec' rs' rs'' g) => GToRec' rs rs'' (f :*: g) where
+  gToRec' (f :*: g) = gToRec' f . gToRec' @rs' g
+
+instance (rs ~ (r ': rs')) => GToRec' rs rs' (K1 i r) where
+  gToRec' (K1 r) rs = Identity r :& rs
+
+instance (rs ~ rs') => GToRec' rs rs' U1 where
+  gToRec' _ = id
+
+
 class UncurryRec rs z f where
   uncurryRec :: f -> (Rec Identity rs -> z)
 
@@ -95,3 +117,13 @@ instance (f ~ z) => UncurryRec '[] z f where
 
 instance (f ~ (r -> f'), UncurryRec rs z f') => UncurryRec (r ': rs) z f where
   uncurryRec f (Identity r :& rs) = uncurryRec (f r) rs
+
+
+class CurryRec rs z f where
+  curryRec :: (Rec Identity rs -> z) -> f
+
+instance (f ~ z) => CurryRec '[] z f where
+  curryRec z = z RNil
+
+instance (f ~ (r -> f'), CurryRec rs z f') => CurryRec (r ': rs) z f where
+  curryRec f r = curryRec (\rs -> f (Identity r :& rs))
