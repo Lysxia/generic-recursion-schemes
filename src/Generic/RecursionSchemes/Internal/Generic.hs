@@ -19,6 +19,8 @@
 
 module Generic.RecursionSchemes.Internal.Generic where
 
+import Control.Monad ((>=>))
+import Data.Bifunctor
 import Data.Functor.Identity
 import Data.Function (fix)
 import Data.Type.Bool
@@ -144,6 +146,49 @@ match_ f = Sum.match @c @(BaseConF rs) (uncurryRec f . mapRecFromMaybe . unBaseC
 class RepToSum a (Rep a) => GToSum a
 instance RepToSum a (Rep a) => GToSum a
 
+
+-- | Wrap the base functor.
+--
+-- For example with lists, this is equivalent to:
+--
+-- @
+-- -- With ListF from recursion-schemes
+-- embed :: ListF a [a] -> [a]
+-- embed Nil = []
+-- embed (Cons a as) = a : as
+-- @
+gembed :: (Generic a, GFromSum a) => GBase a a -> a
+gembed = to . sumToRep
+
+-- | Unfold a corecursive structure.
+--
+-- For example, consider this definition of the Fibonacci sequence, given the
+-- first two elements:
+--
+-- @
+-- fib :: (Int, Int) -> [Int]
+-- fib (a0, a1) = a0 : fib (a1, a2)
+--   where a2 = a0 + a1
+-- @
+--
+-- With generic-recursion-schemes, this can be written as
+--
+-- @
+-- fib :: (Int, Int) -> [Int]
+-- fib = 'gana'
+-- f b = 'gcata' alg . ('Data.Coerce.coerce' :: [a] -> ['Identity' a]) where
+--   alg = 'case_'
+--     'Data.Function.&' 'match' \@\"[]\" (\\() -> b)
+--     'Data.Function.&' 'match' \@\":\"  (\\(a, b) -> f a b)
+-- @
+gana :: (Generic a, GFromSum a, Functor (GBase a)) => (r -> GBase a r) -> r -> a
+gana f = fix $ \ana_f -> gembed . fmap ana_f . f
+
+-- | Corecursion schemes for generic types.
+class SumToRep a (Rep a) => GFromSum a
+instance SumToRep a (Rep a) => GFromSum a
+
+
 type family MapFromMaybe a (rs :: [Maybe *]) :: [*] where
   MapFromMaybe a '[] = '[]
   MapFromMaybe a (r ': rs) = FromMaybe a r ': MapFromMaybe a rs
@@ -240,3 +285,46 @@ instance DecEq e r => RepToProduct' e (M1 i c (K1 j r)) rs where
 
 instance RepToProduct' e U1 rs where
   repToProduct' U1 rs = rs
+
+class SumToRep e f where
+  sumToRep :: Sum (ToSum e f) e -> f p
+
+class SumToRep' e f rs where
+  sumToRep' :: Sum (ToSum' e f rs) e -> Either (f p) (Sum rs e)
+
+class ProductToRep' e f rs where
+  productToRep'
+    :: Rec (FromMaybeF e) (ToRec' e f rs) -> (f p, Rec (FromMaybeF e) rs)
+
+instance SumToRep' e f '[] => SumToRep e f where
+  sumToRep s = case sumToRep' @_ @_ @'[] s of
+    Left f -> f
+    Right s' -> case s' of {}
+
+instance (SumToRep' e f (ToSum' e g rs), SumToRep' e g rs)
+  => SumToRep' e (f :+: g) rs where
+  sumToRep' =
+    (first L1 . (sumToRep' @_ @_ @(ToSum' e g rs)))
+      >=> (first R1 . sumToRep' @_ @_ @rs)
+
+instance ProductToRep' e f '[] => SumToRep' e (M1 C c f) rs where
+  sumToRep' (Here (BaseConF s)) =
+    let (f, RNil) = productToRep' @_ @_ @'[] s in
+    Left (M1 f)
+  sumToRep' (There s) = Right s
+
+instance SumToRep' e V1 rs where
+  sumToRep' = Right
+
+instance (ProductToRep' e f (ToRec' e g rs), ProductToRep' e g rs)
+  => ProductToRep' e (f :*: g) rs where
+  productToRep' s =
+    let (f, s') = productToRep' @_ @_ @(ToRec' e g rs) s
+        (g, s'') = productToRep' @_ @_ @rs s' in
+    (f :*: g, s'')
+
+instance DecEq e r => ProductToRep' e (M1 i c (K1 j r)) rs where
+  productToRep' (FromMaybeF r :& rs) = (M1 (K1 (decEq @e @r r r)), rs)
+
+instance ProductToRep' e U1 rs where
+  productToRep' rs = (U1, rs)
