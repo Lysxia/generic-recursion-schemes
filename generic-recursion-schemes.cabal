@@ -50,6 +50,7 @@ test-suite patterns-test
   main-is: patterns.hs
   build-depends:
     generic-recursion-schemes,
+    inspection-testing,
     base
   ghc-options: -Wall
   default-language: Haskell2010
