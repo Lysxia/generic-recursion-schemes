@@ -3,17 +3,28 @@
 module Generic.RecursionSchemes
   ( -- * Generic catamorphisms
     gcata
-
-  , GBase
   , gproject
   , GToSum
 
+    -- * Generic anamorphisms
+  , gana
+  , gembed
+  , GFromSum
+
     -- * Base functor representation
 
+  , GBase
+
   , Sum(..)
+
+    -- ** Destructors
   , case_
   , match
   , match_
+
+    -- ** Constructors
+  , con
+  , con_
 
     -- *** Reexported from base
   , (&)
@@ -25,4 +36,4 @@ module Generic.RecursionSchemes
 
 import Data.Function ((&))
 import Generic.RecursionSchemes.Internal.Generic
-import Generic.RecursionSchemes.Internal.Sum hiding (match)
+import Generic.RecursionSchemes.Internal.Sum hiding (match, con)
