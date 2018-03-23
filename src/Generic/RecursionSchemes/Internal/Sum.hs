@@ -100,3 +100,20 @@ instance ('False ~ (c == c0), rs' ~ ('(c0, f0) ': rs''), Match c f rs rs'')
   => Match0 c f c0 f0 rs rs' 'False where
   match0 _ g (Here a) = g (Here a)
   match0 f g (There a) = match @c f (g . There) a
+
+class Construct c f rs where
+  con :: f a -> Sum rs a
+
+instance Construct0 c f c0 f0 rs (c == c0)
+  => Construct c f ('(c0, f0) ': rs) where
+  con = con0 @c
+
+class (eq ~ (c == c0)) => Construct0 c f c0 f0 rs eq where
+  con0 :: f a -> Sum ('(c0, f0) ': rs) a
+
+instance (c ~ c0, f ~ f0) => Construct0 c f c0 f0 rs 'True where
+  con0 = Here
+
+instance ('False ~ (c == c0), Construct c f rs)
+  => Construct0 c f c0 f0 rs 'False where
+  con0 = There . con @c
