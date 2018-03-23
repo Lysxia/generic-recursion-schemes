@@ -88,6 +88,18 @@ instance (rs ~ rs') => GFromRec' rs rs' U1 where
   gFromRec' rs = (U1, rs)
 
 
+class ToRec rs t where
+  toRec :: t -> Rec Identity rs
+
+instance (r ~ r') => ToRec '[r] r' where
+  toRec r = Identity r :& RNil
+
+instance (Generic t, GToRec '[] t) => ToRec '[] t where
+  toRec = gToRec
+
+instance (Generic t, GToRec (r1 ': r2 ': rs) t) => ToRec (r1 ': r2 ': rs) t where
+  toRec = gToRec
+
 type GToRec rs a = GToRec' rs '[] (Rep a)
 
 gToRec :: (Generic a, GToRec rs a) => a -> Rec Identity rs
@@ -122,8 +134,18 @@ instance (f ~ (r -> f'), UncurryRec rs z f') => UncurryRec (r ': rs) z f where
 class CurryRec rs z f where
   curryRec :: (Rec Identity rs -> z) -> f
 
-instance (f ~ z) => CurryRec '[] z f where
-  curryRec z = z RNil
+type family IsFunction f :: Bool where
+  IsFunction (a -> b) = 'True
+  IsFunction c = 'False
 
-instance (f ~ (r -> f'), CurryRec rs z f') => CurryRec (r ': rs) z f where
-  curryRec f r = curryRec (\rs -> f (Identity r :& rs))
+instance CurryRec' rs z f (IsFunction f) => CurryRec rs z f where
+  curryRec = curryRec'
+
+class (IsFunction f ~ isfun) => CurryRec' rs z f isfun where
+  curryRec' :: (Rec Identity rs -> z) -> f
+
+instance (rs ~ '[], f ~ z, IsFunction f ~ 'False) => CurryRec' rs z f 'False where
+  curryRec' z = z RNil
+
+instance (rs ~ (r ': rs'), CurryRec rs' z f) => CurryRec' rs z (r -> f) 'True where
+  curryRec' f r = curryRec (\rs -> f (Identity r :& rs))

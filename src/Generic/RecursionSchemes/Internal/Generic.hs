@@ -29,10 +29,11 @@ import GHC.TypeLits
 
 import Data.Vinyl
 
-import Generic.RecursionSchemes.Internal.Sum hiding (match)
+import Generic.RecursionSchemes.Internal.Sum hiding (match, con)
 import qualified Generic.RecursionSchemes.Internal.Sum as Sum
 import Generic.RecursionSchemes.Internal.TyFun
-import Generic.RecursionSchemes.Internal.Vinyl
+import Generic.RecursionSchemes.Internal.Vinyl hiding (ToRec, toRec)
+import qualified Generic.RecursionSchemes.Internal.Vinyl as Vinyl
 
 -- | The base functor of a generic type @a@.
 --
@@ -119,9 +120,12 @@ gcata f = fix $ \cata_f -> f . fmap cata_f . gproject
 -- @
 match
   :: forall c t z a rs ss ss'
-  .  (Match c (BaseConF rs) ss ss', FromRec (MapFromMaybe a rs) t)
+  .  ( Match c (BaseConF rs) ss ss'
+     , FromRec (MapFromMaybe a rs) t
+     , DistributeFromMaybe rs
+     )
   => (t -> z) -> (Sum ss' a -> z) -> Sum ss a -> z
-match f = Sum.match @c @(BaseConF rs) (f . fromRec . mapRecFromMaybe . unBaseConF)
+match f = Sum.match @c @(BaseConF rs) (f . fromRec . distributeFromMaybe . unBaseConF)
 
 -- | One branch in a pattern-match construct for a base functor represented as an
 -- extensible 'Sum'; the branch is given as a curried function.
@@ -138,9 +142,11 @@ match f = Sum.match @c @(BaseConF rs) (f . fromRec . mapRecFromMaybe . unBaseCon
 -- @
 match_
   :: forall c z f a rs ss ss'
-  .  (Match c (BaseConF rs) ss ss', UncurryRec (MapFromMaybe a rs) z f)
+  .  ( Match c (BaseConF rs) ss ss'
+     , UncurryRec (MapFromMaybe a rs) z f
+     , DistributeFromMaybe rs )
   => f -> (Sum ss' a -> z) -> Sum ss a -> z
-match_ f = Sum.match @c @(BaseConF rs) (uncurryRec f . mapRecFromMaybe . unBaseConF)
+match_ f = Sum.match @c @(BaseConF rs) (uncurryRec f . distributeFromMaybe . unBaseConF)
 
 -- | Recursion schemes for generic types.
 class RepToSum a (Rep a) => GToSum a
@@ -179,6 +185,23 @@ gembed = to . sumToRep
 gana :: (Generic a, GFromSum a, Functor (GBase a)) => (r -> GBase a r) -> r -> a
 gana f = fix $ \ana_f -> gembed . fmap ana_f . f
 
+con
+  :: forall c t a rs ss
+  .  ( Construct c (BaseConF rs) ss
+     , Vinyl.ToRec (MapFromMaybe a rs) t
+     , FactorFromMaybe rs )
+  => t -> Sum ss a
+con = Sum.con @c @(BaseConF rs) . BaseConF . factorFromMaybe . Vinyl.toRec
+
+con_
+  :: forall c a rs ss f
+  .  ( Construct c (BaseConF rs) ss
+     , CurryRec (MapFromMaybe a rs) (Sum ss a) f
+     , FactorFromMaybe rs )
+  => f
+con_ = curryRec @(MapFromMaybe a rs) @(Sum ss a)
+  (Sum.con @c @(BaseConF rs) @ss . BaseConF . factorFromMaybe)
+
 -- | Corecursion schemes for generic types.
 class SumToRep a (Rep a) => GFromSum a
 instance SumToRep a (Rep a) => GFromSum a
@@ -188,10 +211,25 @@ type family MapFromMaybe a (rs :: [Maybe *]) :: [*] where
   MapFromMaybe a '[] = '[]
   MapFromMaybe a (r ': rs) = FromMaybe a r ': MapFromMaybe a rs
 
-mapRecFromMaybe
-  :: Rec (FromMaybeF a) rs -> Rec Identity (MapFromMaybe a rs)
-mapRecFromMaybe RNil = RNil
-mapRecFromMaybe (FromMaybeF r :& rs) = Identity r :& mapRecFromMaybe rs
+class DistributeFromMaybe rs where
+  distributeFromMaybe
+    :: Rec (FromMaybeF a) rs -> Rec Identity (MapFromMaybe a rs)
+
+instance DistributeFromMaybe '[] where
+  distributeFromMaybe RNil = RNil
+
+instance DistributeFromMaybe rs => DistributeFromMaybe (r ': rs) where
+  distributeFromMaybe (FromMaybeF r :& rs) =
+    Identity r :& distributeFromMaybe rs
+
+class FactorFromMaybe rs where
+  factorFromMaybe :: Rec Identity (MapFromMaybe a rs) -> Rec (FromMaybeF a) rs
+
+instance FactorFromMaybe '[] where
+  factorFromMaybe RNil = RNil
+
+instance FactorFromMaybe rs => FactorFromMaybe (r ': rs) where
+  factorFromMaybe (Identity r :& rs) = FromMaybeF r :& factorFromMaybe rs
 
 newtype FromMaybeF a m = FromMaybeF (FromMaybe a m)
 
