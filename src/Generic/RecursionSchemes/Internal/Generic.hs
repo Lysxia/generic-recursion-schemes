@@ -198,8 +198,11 @@ type ToSum e f = ToSum' e f '[]
 type family ToSum' e (f :: k -> *) (rs :: [(Symbol, * -> *)]) :: [(Symbol, * -> *)]
 type instance ToSum' e (f :+: g) rs = ToSum' e f (ToSum' e g rs)
 type instance ToSum' e (M1 D c f) rs = ToSum' e f rs
-type instance ToSum' e (M1 C ('MetaCons cname x y) f) rs = '(cname, BaseConF (ToRec e f)) ': rs
+type instance ToSum' e (M1 C c f) rs = '(CName c, BaseConF (ToRec e f)) ': rs
 type instance ToSum' e V1 rs = rs
+
+type family CName (c :: Meta) :: Symbol
+type instance CName ('MetaCons cname x y) = cname
 
 class RepToSum e f where
   repToSum :: f p -> Sum (ToSum e f) e
@@ -220,7 +223,7 @@ instance (RepToSum' e f (ToSum' e g rs), RepToSum' e g rs)
   repToSum' (Left (R1 g)) = repToSum' @_ @f (Right (repToSum' @_ @_ @rs (Left g)))
   repToSum' (Right s) = repToSum' @_ @f (Right (repToSum' @_ @g (Right s)))
 
-instance RepToProduct' e f '[] => RepToSum' e (M1 C ('MetaCons cname x y) f) rs where
+instance RepToProduct' e f '[] => RepToSum' e (M1 C c f) rs where
   repToSum' (Left (M1 f)) = Here (BaseConF (repToProduct' f RNil))
   repToSum' (Right s) = There s
 
