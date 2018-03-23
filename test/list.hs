@@ -1,8 +1,10 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -O -fplugin Test.Inspection.Plugin #-}
+{-# OPTIONS_GHC -dsuppress-all #-}
 
 import Data.Coerce (coerce)
 import Data.Function (fix)
@@ -21,6 +23,10 @@ f0 :: ListF Int Int -> Int
 f0 Nil = 0
 f0 (Cons n m) = n + m :: Int
 
+sum0_manual :: [Int] -> Int
+sum0_manual [] = 0
+sum0_manual (x : xs) = x + sum0_manual xs
+
 sum0 :: [Int] -> Int
 sum0 = cataList f0
 
@@ -32,6 +38,34 @@ cataList f = (coerce :: ([Identity b] -> a) -> [b] -> a) (gcata (f . ListF))
 
 cataList' :: (ListF b a -> a) -> [b] -> a
 cataList' f = fix $ \cata_f -> f . fmap cata_f . projectList
+
+f1 :: ListF Int (Int -> Int) -> Int -> Int
+f1 Nil acc = acc
+f1 (Cons n m) !acc = m (n + acc)
+
+sum1_manual :: [Int] -> Int
+sum1_manual xs = go xs 0
+  where
+    go :: [Int] -> Int -> Int
+    go [] = \ acc -> acc
+    go (x : xs') = \ !acc -> go xs' (x + acc)
+
+{-
+sum1_cata :: [Int] -> Int
+sum1_cata xs = go xs 0
+  where
+    go = f . (fmap . fmap) go . e
+    f Nothing acc = acc
+    f (Just (h, t)) !acc = t (h + acc)
+    e [] = Nothing
+    e (x : xs) = Just (x, xs)
+-}
+
+sum1 :: [Int] -> Int
+sum1 xs = cataList f1 xs 0
+
+sum1' :: [Int] -> Int
+sum1' xs = cataList' f1 xs 0
 
 projectList :: [b] -> ListF b [b]
 projectList [] = Nil
@@ -56,4 +90,8 @@ pattern Cons h t =
 
 {-# COMPLETE Nil, Cons #-}
 
-inspect $ 'sum0 === 'sum0'
+inspect $ 'sum0  ==- 'sum0_manual
+inspect $ 'sum0' ==- 'sum0_manual
+-- TODO make these equal
+inspect $ 'sum1  =/= 'sum1_manual
+inspect $ 'sum1' =/= 'sum1_manual
