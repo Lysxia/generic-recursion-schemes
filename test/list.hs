@@ -11,13 +11,21 @@ import Generic.RecursionSchemes
 
 main :: IO ()
 main = do
-  let f Nil = 0
-      f (Cons n m) = n + m :: Int
-  assertEq (cataList  f [1,2,3]) 6
-  assertEq (cataList' f [1,2,3]) 6
+  assertEq (sum0  [1,2,3]) 6
+  assertEq (sum0' [1,2,3]) 6
+
+f0 :: ListF Int Int -> Int
+f0 Nil = 0
+f0 (Cons n m) = n + m :: Int
+
+sum0 :: [Int] -> Int
+sum0 = cataList f0
+
+sum0' :: [Int] -> Int
+sum0' = cataList' f0
 
 cataList :: (ListF b a -> a) -> [b] -> a
-cataList f = gcata (f . ListF) . (coerce :: [b] -> [Identity b])
+cataList f = (coerce :: ([Identity b] -> a) -> [b] -> a) (gcata (f . ListF))
 
 cataList' :: (ListF b a -> a) -> [b] -> a
 cataList' f = fix $ \cata_f -> f . fmap cata_f . projectList
