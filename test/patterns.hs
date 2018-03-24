@@ -7,7 +7,6 @@
 {-# OPTIONS_GHC -funfolding-use-threshold=300 #-}
 {-# OPTIONS_GHC -dsuppress-all #-}
 
-import Data.Function ((&))
 import GHC.Generics
 import Test.Inspection
 
@@ -23,16 +22,17 @@ toList_manual (Node ns ms) = toList_manual ns ++ toList_manual ms
 
 toList :: Tree -> [Int]
 toList = gcata $ case_
-  & match @"End"  (\() -> [])
-  & match @"Leaf" (\n -> [n])
-  & match @"Node" (\(ns, ms) -> ns ++ ms)
+  (  match @"End"  (\() -> [])
+  |. match @"Leaf" (\n -> [n])
+  |. match @"Node" (\(ns, ms) -> ns ++ ms)
+  )
 
 toList' :: Tree -> [Int]
 toList' = gcata $ case_
-  & match_ @"Node" (\ns ms -> ns ++ ms)
-  & match_ @"Leaf" (\n -> [n])
-  & match_ @"End"  []
-  -- Branches in any order
+  (  match_ @"Node" (\ns ms -> ns ++ ms)
+  |. match_ @"Leaf" (\n -> [n])
+  |. match_ @"End"  []
+  ) -- Branches in any order
 
 toList1_manual :: Tree -> [Int]
 toList1_manual t = go t [] where
@@ -44,9 +44,10 @@ toList1 :: Tree -> [Int]
 toList1 t = go t [] where
   go :: Tree -> [Int] -> [Int]
   go = gcata $ case_
-    & match_ @"End"  id
-    & match_ @"Leaf" (\n -> (n :))
-    & match_ @"Node" (\ns ms -> ns . ms)
+    (  match_ @"End"  id
+    |. match_ @"Leaf" (\n -> (n :))
+    |. match_ @"Node" (\ns ms -> ns . ms)
+    )
 
 size_manual :: Tree -> Int
 size_manual End = 1
@@ -64,15 +65,17 @@ size1_manual t = go t id where
 
 size1 :: Tree -> Int
 size1 t = gcata alg t id where
-  alg = caseDefault (\_ k -> k 1)
-    & match @"Node" (\(ns, ms) k -> ns (\n -> ms (\m -> k $! n + m + 1)))
+  alg = caseDefault
+    ( match @"Node" (\(ns, ms) k -> ns (\n -> ms (\m -> k $! n + m + 1)))
+    ) (\_ k -> k 1)
 
 size1' :: Tree -> Int
 size1' t = gcata alg t id where
   alg = case_
-    & match_ @"End"  (\k -> k 1)
-    & match_ @"Leaf" (\_  k -> k 1)
-    & match_ @"Node" (\ns ms k -> ns (\n -> ms (\m -> k $! n + m + 1)))
+    (  match_ @"End"  (\k -> k 1)
+    |. match_ @"Leaf" (\_  k -> k 1)
+    |. match_ @"Node" (\ns ms k -> ns (\n -> ms (\m -> k $! n + m + 1)))
+    )
 
 fib :: (Int, Int) -> [Int]
 fib = gana $ \(!a0, !a1) ->

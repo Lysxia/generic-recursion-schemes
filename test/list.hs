@@ -14,6 +14,7 @@ import Data.Vinyl
 import Test.Inspection
 
 import Generic.RecursionSchemes
+import Generic.RecursionSchemes.Internal
 
 main :: IO ()
 main = do
@@ -84,14 +85,14 @@ newtype ListF b a = ListF (GBase [Identity b] a)
   deriving Functor
 
 pattern Nil :: ListF b a
-pattern Nil = ListF (Here (BaseConF RNil))
+pattern Nil = ListF (GBase (Here (BaseConF RNil)))
 
 pattern Cons :: b -> a -> ListF b a
 pattern Cons h t =
-  ListF (There (Here (BaseConF
+  ListF (GBase (There (Here (BaseConF
     (Compose (Lazy (FromMaybeF (Identity h)))
       :& Compose (Lazy (FromMaybeF t))
-      :& RNil))))
+      :& RNil)))))
 
 {-# COMPLETE Nil, Cons #-}
 

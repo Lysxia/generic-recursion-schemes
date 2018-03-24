@@ -26,12 +26,13 @@ data Prop a
 eval :: (a -> Bool) -> Prop a -> Bool
 eval ctx = eval_ . (coerce :: Prop a -> Prop (Identity a)) where
   eval_ = gcata $ case_
-    & match_ @"Var" (ctx . runIdentity)
-    & match_ @"Not" not
-    & match_ @"And" (&&)
-    & match_ @"Or"  (||)
-    & match_ @"If"  (==>)
-    & match_ @"Iff" (==)
+    (  match_ @"Var" (ctx . runIdentity)
+    |. match_ @"Not" not
+    |. match_ @"And" (&&)
+    |. match_ @"Or"  (||)
+    |. match_ @"If"  (==>)
+    |. match_ @"Iff" (==)
+    )
 
 eval_manual :: (a -> Bool) -> Prop a -> Bool
 eval_manual ctx = go where
