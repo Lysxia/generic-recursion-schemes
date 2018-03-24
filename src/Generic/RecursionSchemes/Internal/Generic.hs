@@ -329,9 +329,9 @@ class ProductToRep' e f rs where
   productToRep'
     :: Rec (FromMaybeF e) (ToRec' e f rs) -> (f p, Rec (FromMaybeF e) rs)
 
-instance SumToRep' e f '[] => SumToRep e f where
+instance SumToRep' e f '[] => SumToRep e (M1 D c f) where
   sumToRep s = case sumToRep' @_ @_ @'[] s of
-    Left f -> f
+    Left f -> M1 f
     Right s' -> case s' of {}
 
 instance (SumToRep' e f (ToSum' e g rs), SumToRep' e g rs)
