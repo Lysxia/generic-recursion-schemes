@@ -17,6 +17,8 @@
 
 module Generic.RecursionSchemes.Internal.Sum where
 
+import Control.Category (Category)
+import qualified Control.Category as Category
 import GHC.TypeLits
 
 import Generic.RecursionSchemes.Internal.TyFun (type (==))
@@ -77,6 +79,30 @@ instance (Traversable f, TraversableSum rs) => TraversableSum ('(s, f) ': rs) wh
   traverseSum f (Here a) = Here <$> traverse f a
   traverseSum f (There a) = There <$> traverseSum f a
 
+
+-- | Handler for a sum type.
+--
+-- @s@ is the list of alternatives to handled, @s'@ is the list of alternatives
+-- that are /not/ handled by this handler (and so will be passed to another
+-- handler), @a@ is the sum functor's parameter, and @z@ is the result type of
+-- the handler.
+newtype Handler a z s s' = Handler
+  { unHandler :: (Sum s' a -> z) -> Sum s a -> z }
+
+-- | The categorical composition is @'flip' ('|.')@.
+instance Category (Handler a z) where
+  id = Handler id
+  (.) = flip (|.)
+
+-- | Composition of handlers: the first handler passes what it can't handle to
+-- the next one.
+(|.) :: Handler a z s s' -> Handler a z s' s'' -> Handler a z s s''
+Handler h1 |. Handler h2 = Handler (h1 . h2)
+
+match :: forall c f a s s' z. Match c f s s' => (f a -> z) -> Handler a z s s'
+match = Handler . match_ @c
+
+
 class Match c f rs rs' where
   -- | Pattern-matching on a sum.
   --
@@ -88,11 +114,11 @@ class Match c f rs rs' where
   --   -- in any order
   --   :: 'Sum' '[ '(\"C0\", 'Data.Functor.Identity.Identity'), '(\"C1\", []), '(\"C2\", 'Maybe')] a -> [a]
   -- @
-  match :: (f a -> z) -> (Sum rs' a -> z) -> Sum rs a -> z
+  match_ :: (f a -> z) -> (Sum rs' a -> z) -> Sum rs a -> z
 
 instance Match0 c f c0 f0 rs rs' (c == c0)
   => Match c f ('(c0, f0) ': rs) rs' where
-  match = match0 @c
+  match_ = match0 @c
 
 class (eq ~ (c == c0)) => Match0 c f c0 f0 rs rs' eq where
   match0 :: (f a -> z) -> (Sum rs' a -> z) -> Sum ('(c0, f0) ': rs) a -> z
@@ -104,7 +130,7 @@ instance (c ~ c0, f ~ f0, rs ~ rs') => Match0 c f c0 f0 rs rs' 'True where
 instance ('False ~ (c == c0), rs' ~ ('(c0, f0) ': rs''), Match c f rs rs'')
   => Match0 c f c0 f0 rs rs' 'False where
   match0 _ g (Here a) = g (Here a)
-  match0 f g (There a) = match @c f (g . There) a
+  match0 f g (There a) = match_ @c f (g . There) a
 
 class Construct c f rs where
   con :: f a -> Sum rs a

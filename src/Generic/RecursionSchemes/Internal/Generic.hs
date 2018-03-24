@@ -114,16 +114,13 @@ gcata f = gcata_f where gcata_f = f . fmap gcata_f . gproject
 --   :: forall cname t z ss1 ss2
 --   .  _omittedConstraints
 --   => (t -> z)
---   -> (Sum (ss1               ++ ss2) _ -> z)
---   -> (Sum (ss1 ++ (cname, _) ++ ss2) _ -> z)
+--   -> Handler _ z (ss1 ++ (cname, _) ++ ss2) (ss1 ++ ss2)
 -- @
 --
 -- 'match' must be applied to a constructor name as a type-level string (@cname@).
--- The first value-level argument (of type @t -> z@) is one branch in a
+-- The value-level argument (of type @t -> z@) is one branch in a
 -- pattern-match construct for a base functor represented as an extensible
 -- 'Sum'; the branch must be given as an uncurried function that takes a tuple.
--- The second argument (@Sum (ss1 ++ ss2) _ -> z@) represents the remaining
--- branches.
 --
 -- Tuples (the type @t@) can be actual tuples @(x,y,z)@, or any @Generic@
 -- type with a single constructor having the right number and types of fields.
@@ -160,8 +157,9 @@ match
      , FromRec (MapFromMaybe a rs) t
      , DistributeFromMaybe rs
      )
-  => (t -> z) -> (Sum ss' a -> z) -> Sum ss a -> z
-match f = Sum.match @c @(BaseConF rs) (f . fromRec . distributeFromMaybe . unBaseConF)
+  => (t -> z) -> Handler a z ss ss'
+match f = Sum.match @c @(BaseConF rs)
+  (f . fromRec . distributeFromMaybe . unBaseConF)
 
 -- | One branch in a pattern-match construct for a base functor represented as an
 -- extensible 'Sum'; the branch is given as a curried function.
@@ -181,8 +179,9 @@ match_
   .  ( Match c (BaseConF rs) ss ss'
      , UncurryRec (MapFromMaybe a rs) z f
      , DistributeFromMaybe rs )
-  => f -> (Sum ss' a -> z) -> Sum ss a -> z
-match_ f = Sum.match @c @(BaseConF rs) (uncurryRec f . distributeFromMaybe . unBaseConF)
+  => f -> Handler a z ss ss'
+match_ f = Sum.match @c @(BaseConF rs)
+  (uncurryRec f . distributeFromMaybe . unBaseConF)
 
 -- | Recursion schemes for generic types.
 class RepToSum a (Rep a) => GToSum a
