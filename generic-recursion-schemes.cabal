@@ -22,6 +22,7 @@ library
   hs-source-dirs:      src
   exposed-modules:
     Generic.RecursionSchemes
+    Generic.RecursionSchemes.Internal
     Generic.RecursionSchemes.Internal.Generic
     Generic.RecursionSchemes.Internal.Sum
     Generic.RecursionSchemes.Internal.TyFun

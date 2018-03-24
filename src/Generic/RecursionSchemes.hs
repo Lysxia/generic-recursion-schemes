@@ -11,12 +11,10 @@ module Generic.RecursionSchemes
 
     -- * Base functor representation
 
-  , GBase
-
-  , Sum(..)
+  , GBase()
 
     -- ** Destructors
-  , Handler(..)
+  , Handler()
   , case_
   , caseOf
   , caseDefault
@@ -28,22 +26,7 @@ module Generic.RecursionSchemes
     -- ** Constructors
   , con
   , con_
-
-    -- * Infrastructure
-
-    -- | Possibly useful interface to define pattern synonyms and some other
-    -- generic combinators.
-
-  , GToSum
-  , GFromSum
-
-    -- ** Inner wrappers
-  , BaseConF(..)
-  , FromMaybeF(..)
-  , Lazy(..)
-  , LazyT
   ) where
 
 import Generic.RecursionSchemes.Internal.Generic
-import Generic.RecursionSchemes.Internal.Sum (Sum(..), Handler(..), (|.))
-import Generic.RecursionSchemes.Internal.Vinyl (Lazy(..), LazyT)
+import Generic.RecursionSchemes.Internal.Sum (Handler(), (|.))
