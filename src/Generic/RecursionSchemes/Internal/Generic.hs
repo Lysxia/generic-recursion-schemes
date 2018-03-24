@@ -22,7 +22,6 @@ module Generic.RecursionSchemes.Internal.Generic where
 import Control.Monad ((>=>))
 import Data.Bifunctor
 import Data.Functor.Compose
-import Data.Function (fix)
 import Data.Type.Bool
 import GHC.Generics
 import GHC.TypeLits
@@ -91,7 +90,7 @@ gproject = repToSum . from
 --     'Data.Function.&' 'match' \@\":\"  (\\(a, b) -> f a b)
 -- @
 gcata :: (Generic a, GToSum a, Functor (GBase a)) => (GBase a r -> r) -> a -> r
-gcata f = fix $ \cata_f -> f . fmap cata_f . gproject
+gcata f = gcata_f where gcata_f = f . fmap gcata_f . gproject
 
 -- | One branch in a pattern-match construct for a base functor represented
 -- as an extensible 'Sum'; the branch is given as an uncurried function.
@@ -183,7 +182,7 @@ gembed = to . sumToRep
 -- fib :: (Int, Int) -> [Int]
 -- @
 gana :: (Generic a, GFromSum a, Functor (GBase a)) => (r -> GBase a r) -> r -> a
-gana f = fix $ \ana_f -> gembed . fmap ana_f . f
+gana f = gana_f where gana_f = gembed . fmap gana_f . f
 
 con
   :: forall c t a rs ss
