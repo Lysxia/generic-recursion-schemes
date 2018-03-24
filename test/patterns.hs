@@ -52,12 +52,37 @@ size_manual (Node ns ms) = size_manual ns + (size_manual ms + 1)
 size :: Tree -> Int
 size = gcata $ foldr (+) 1
 
+fib :: (Int, Int) -> [Int]
+fib = gana $ \(a0, a1) ->
+  let a2 = a0 + a1 in con @":" (a0, (a1, a2))
+
+fib' :: (Int, Int) -> [Int]
+fib' = gana $ \(a0, a1) ->
+  let a2 = a0 + a1 in con_ @":" a0 (a1, a2)
+
+fibTree :: Int -> Tree
+fibTree = gana $ \n ->
+  if      n == 0 then con @"End" ()
+  else if n == 1 then con @"Leaf" 1
+  else                con @"Node" (n-1, n-2)
+
+fibTree' :: Int -> Tree
+fibTree' = gana $ \n ->
+  if      n == 0 then con_ @"End"
+  else if n == 1 then con_ @"Leaf" 1
+  else                con_ @"Node" (n - 1) (n - 2)
+
 main :: IO ()
 main = do
   let t = Node (Node (Leaf 0) (Leaf 1)) (Leaf 2)
   assertEq (toList  t) [0, 1, 2]
   assertEq (toList' t) [0, 1, 2]
   assertEq (size t) 5
+  -- assertEq (take 6 (fib  (0, 1))) [0, 1, 1, 2, 3, 5]
+  -- assertEq (take 6 (fib' (0, 1))) [0, 1, 1, 2, 3, 5]
+  let sumTree = sum . toList
+  assertEq (sumTree (fibTree  5)) 5
+  assertEq (sumTree (fibTree' 5)) 5
 
 assertEq :: (Eq a, Show a) => a -> a -> IO ()
 assertEq a b = do
