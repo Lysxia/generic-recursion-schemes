@@ -28,7 +28,8 @@ import GHC.TypeLits
 
 import Data.Vinyl
 
-import Generic.RecursionSchemes.Internal.Sum hiding (case_, match, match_)
+import Generic.RecursionSchemes.Internal.Sum hiding
+  (case_, caseOf, match, match_, default_)
 import qualified Generic.RecursionSchemes.Internal.Sum as Sum
 import Generic.RecursionSchemes.Internal.TyFun
 import Generic.RecursionSchemes.Internal.Vinyl hiding (ToRec, toRec)
@@ -117,8 +118,13 @@ gproject = GBase . repToSum . from
 gcata :: (Generic a, GToSum a, Functor (GBase a)) => (GBase a r -> r) -> a -> r
 gcata f = gcata_f where gcata_f = f . fmap gcata_f . gproject
 
+-- | Apply a total handler.
 case_ :: Handler r z (ToSum a (Rep a)) '[] -> GBase a r -> z
 case_ h = Sum.case_ h . unGBase
+
+-- | Flipped 'case_' so the scrutinee may appear first.
+caseOf :: GBase a r -> Handler r z (ToSum a (Rep a)) '[] -> z
+caseOf = flip case_
 
 -- | Approximate, simplified signature:
 --

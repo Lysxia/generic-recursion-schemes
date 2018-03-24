@@ -97,6 +97,10 @@ instance Category (Handler a z) where
 case_ :: Handler a z s '[] -> Sum s a -> z
 case_ (Handler h) = h emptySum
 
+-- | Flipped 'case_' so the scrutinee may appear first.
+caseOf :: Sum s a -> Handler a z s '[] -> z
+caseOf = flip case_
+
 -- | Composition of handlers: the first handler passes what it can't handle to
 -- the next one.
 (|.) :: Handler a z s s' -> Handler a z s' s'' -> Handler a z s s''
