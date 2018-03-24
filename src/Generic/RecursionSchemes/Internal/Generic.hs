@@ -63,15 +63,19 @@ import qualified Generic.RecursionSchemes.Internal.Vinyl as Vinyl
 -- @
 -- type ListF a = 'GBase' ['Identity' a]
 -- @
-newtype GBase a x = GBase { unGBase :: Sum (ToSum a (Rep a)) x }
+newtype GBase a x = GBase { unGBase :: Sum (GBaseSum a) x }
 
-instance FunctorSum (ToSum a (Rep a)) => Functor (GBase a) where
+-- | A type-level list representing the constructors of the base functor
+-- of @a@.
+type GBaseSum a = ToSum a (Rep a)
+
+instance FunctorSum (GBaseSum a) => Functor (GBase a) where
   fmap f = GBase . fmap f . unGBase
 
-instance FoldableSum (ToSum a (Rep a)) => Foldable (GBase a) where
+instance FoldableSum (GBaseSum a) => Foldable (GBase a) where
   foldr f b = foldr f b . unGBase
 
-instance TraversableSum (ToSum a (Rep a)) => Traversable (GBase a) where
+instance TraversableSum (GBaseSum a) => Traversable (GBase a) where
   traverse f = fmap GBase . traverse f . unGBase
 
 
@@ -120,19 +124,19 @@ gcata :: (Generic a, GToSum a, Functor (GBase a)) => (GBase a r -> r) -> a -> r
 gcata f = gcata_f where gcata_f = f . fmap gcata_f . gproject
 
 -- | Apply a total handler.
-case_ :: Handler r z (ToSum a (Rep a)) '[] -> GBase a r -> z
+case_ :: Handler r z (GBaseSum a) '[] -> GBase a r -> z
 case_ h = Sum.case_ h . unGBase
 
 -- | Flipped 'case_' so the scrutinee may appear first.
-caseOf :: GBase a r -> Handler r z (ToSum a (Rep a)) '[] -> z
+caseOf :: GBase a r -> Handler r z (GBaseSum a) '[] -> z
 caseOf = flip case_
 
 -- | 'case_' with a default handler.
-caseDefault :: Handler r z (ToSum a (Rep a)) rs -> (GBase a r -> z) -> GBase a r -> z
+caseDefault :: Handler r z (GBaseSum a) rs -> (GBase a r -> z) -> GBase a r -> z
 caseDefault h def t = case_ (h |. default_ (\_ -> def t)) t
 
 -- | Flipped 'caseDefault' so the scrutinee may appear first.
-caseDefaultOf :: GBase a r -> Handler r z (ToSum a (Rep a)) rs -> (GBase a r -> z) -> z
+caseDefaultOf :: GBase a r -> Handler r z (GBaseSum a) rs -> (GBase a r -> z) -> z
 caseDefaultOf t h def = caseDefault h def t
 
 -- | Approximate, simplified signature:

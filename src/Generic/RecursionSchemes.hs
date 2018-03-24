@@ -12,6 +12,7 @@ module Generic.RecursionSchemes
     -- * Base functor representation
 
   , GBase()
+  , GBaseSum
 
     -- ** Destructors
   , Handler()
