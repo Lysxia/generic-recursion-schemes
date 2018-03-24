@@ -4,12 +4,10 @@ module Generic.RecursionSchemes
   ( -- * Generic catamorphisms
     gcata
   , gproject
-  , GToSum
 
     -- * Generic anamorphisms
   , gana
   , gembed
-  , GFromSum
 
     -- * Base functor representation
 
@@ -29,6 +27,14 @@ module Generic.RecursionSchemes
 
     -- *** Reexported from base
   , (&)
+
+    -- * Infrastructure
+
+    -- | Possibly useful interface to define pattern synonyms and some other
+    -- generic combinators.
+
+  , GToSum
+  , GFromSum
 
     -- ** Inner wrappers
   , BaseConF(..)
