@@ -271,6 +271,21 @@ gembed = to . sumToRep . unGBase
 gana :: (Generic a, GFromSum a, Functor (GBase a)) => (r -> GBase a r) -> r -> a
 gana f = gana_f where gana_f = gembed . fmap gana_f . f
 
+-- | Monadic unfolding.
+ganaM
+  :: (Generic a, GFromSum a, Traversable (GBase a), Monad m)
+  => (r -> m (GBase a r)) -> r -> m a
+ganaM f = ganaM_f where
+  ganaM_f r = f r >>= fmap gembed . traverse ganaM_f
+
+-- | Monadic unfolding with constant seed.
+ganaM0
+  :: (Generic a, GFromSum a, Traversable (GBase a), Monad m)
+  => m (GBase a ()) -> m a
+ganaM0 m = ganaM0_m where
+  ganaM0_m = m >>= fmap gembed . traverse (\_ -> ganaM0_m)
+
+
 -- | Construct a value in a base functor given a tuple (which can be any
 -- single-constructor type with the right number and types of fields, see
 -- note on 'match').

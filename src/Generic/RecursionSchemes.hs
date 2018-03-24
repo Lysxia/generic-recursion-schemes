@@ -7,6 +7,8 @@ module Generic.RecursionSchemes
 
     -- * Generic anamorphisms
   , gana
+  , ganaM
+  , ganaM0
   , gembed
 
     -- * Base functor representation
