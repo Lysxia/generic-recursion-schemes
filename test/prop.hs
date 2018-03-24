@@ -31,7 +31,7 @@ data Prop a
 #if MIN_VERSION_base(4,10,0)
 eval :: (a -> Bool) -> Prop a -> Bool
 eval ctx = eval_ . (coerce :: Prop a -> Prop (Identity a)) where
-  eval_ = gcata $ case_
+  eval_ = cataG $ case_
     (  #_Var --> (ctx . runIdentity)
     |. #_Not --> not
     |. #_And --> (&&)
@@ -43,7 +43,7 @@ eval ctx = eval_ . (coerce :: Prop a -> Prop (Identity a)) where
 
 eval' :: (a -> Bool) -> Prop a -> Bool
 eval' ctx = eval_ . (coerce :: Prop a -> Prop (Identity a)) where
-  eval_ = gcata $ case_
+  eval_ = cataG $ case_
     (  match_ @"Var" (ctx . runIdentity)
     |. match_ @"Not" not
     |. match_ @"And" (&&)

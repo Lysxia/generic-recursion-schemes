@@ -7,12 +7,14 @@ This library is compatible with the
 library, and uses GHC Generics instead of Template Haskell to derive base
 functors and recursion combinators.
 
-`gcata` and `gana` can also be used directly, without defining `Recursive` or
+`cataG` and `anaG` can also be used directly, without defining `Recursive` or
 `Corecursive` instances.
 
 ```haskell
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeApplications #-}
 
 import GHC.Generics
 import Data.Functor.Foldable  -- recursion-schemes
@@ -24,14 +26,19 @@ data MyTree = Leaf Int | Node MyTree MyTree
 type instance Base MyTree = GBase MyTree
 
 instance Recursive MyTree where
-  project = gproject
+  project = projectG
 
 instance Corecursive MyTree where
-  embed = gembed
+  embed = embedG
 
 toList :: MyTree -> [Int]
-toList = gcata $ case_
+toList = cataG $ case_
   (  match @"Leaf" (\n -> [n])
   |. match @"Node" (\(ns, ms) -> ns ++ ms)
   )
+
+main :: IO ()
+main = print (toList (Node (Leaf 0) (Node (Leaf 1) (Leaf 2))))
+
+-- Output: [0,1,2]
 ```

@@ -2,14 +2,14 @@
 
 module Generic.RecursionSchemes
   ( -- * Generic catamorphisms
-    gcata
-  , gproject
+    cataG
+  , projectG
 
     -- * Generic anamorphisms
-  , gana
-  , ganaM
-  , ganaM0
-  , gembed
+  , anaG
+  , anaGM
+  , anaGM0
+  , embedG
 
     -- * Base functor representation
 

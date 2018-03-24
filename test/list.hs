@@ -37,7 +37,7 @@ sum0' :: [Int] -> Int
 sum0' = cataList' f0
 
 cataList :: (ListF b a -> a) -> [b] -> a
-cataList f = (coerce :: ([Identity b] -> a) -> [b] -> a) (gcata (f . ListF))
+cataList f = (coerce :: ([Identity b] -> a) -> [b] -> a) (cataG (f . ListF))
 
 cataList' :: (ListF b a -> a) -> [b] -> a
 cataList' f = fix $ \cata_f -> f . fmap cata_f . projectList

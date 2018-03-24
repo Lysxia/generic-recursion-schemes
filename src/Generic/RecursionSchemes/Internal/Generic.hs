@@ -83,7 +83,7 @@ instance TraversableSum (GBaseSum a) => Traversable (GBase a) where
 --
 -- === __Example__
 --
--- With lists, 'gproject' is equivalent to:
+-- With lists, 'projectG' is equivalent to:
 --
 -- @
 -- -- With ListF from recursion-schemes
@@ -91,8 +91,8 @@ instance TraversableSum (GBaseSum a) => Traversable (GBase a) where
 -- project []       = Nil
 -- project (a : as) = Cons a as
 -- @
-gproject :: (Generic a, GToSum a) => a -> GBase a a
-gproject = GBase . repToSum . from
+projectG :: (Generic a, GToSum a) => a -> GBase a a
+projectG = GBase . repToSum . from
 
 -- | Fold a recursive structure.
 --
@@ -114,14 +114,14 @@ gproject = GBase . repToSum . from
 --
 -- @
 -- foldr :: (a -> b -> b) -> b -> [a] -> b
--- foldr f b = 'gcata' alg . ('Data.Coerce.coerce' :: [a] -> ['Data.Functor.Identity.Identity' a]) where
+-- foldr f b = 'cataG' alg . ('Data.Coerce.coerce' :: [a] -> ['Data.Functor.Identity.Identity' a]) where
 --   alg = 'case_'
 --     (  'match' \@\"[]\" (\\() -> b)
 --     '|.' 'match' \@\":\"  (\\(a, b) -> f a b)
 --     )
 -- @
-gcata :: (Generic a, GToSum a, Functor (GBase a)) => (GBase a r -> r) -> a -> r
-gcata f = gcata_f where gcata_f = f . fmap gcata_f . gproject
+cataG :: (Generic a, GToSum a, Functor (GBase a)) => (GBase a r -> r) -> a -> r
+cataG f = cataG_f where cataG_f = f . fmap cataG_f . projectG
 
 -- | Apply a total handler.
 --
@@ -235,7 +235,7 @@ matchGBaseSum f = Sum.match @c @(BaseConF rs)
 --
 -- === __Example__
 --
--- With lists, 'gembed' is equivalent to:
+-- With lists, 'embedG' is equivalent to:
 --
 -- @
 -- -- With ListF from recursion-schemes
@@ -243,8 +243,8 @@ matchGBaseSum f = Sum.match @c @(BaseConF rs)
 -- embed Nil = []
 -- embed (Cons a as) = a : as
 -- @
-gembed :: (Generic a, GFromSum a) => GBase a a -> a
-gembed = to . sumToRep . unGBase
+embedG :: (Generic a, GFromSum a) => GBase a a -> a
+embedG = to . sumToRep . unGBase
 
 -- | Unfold a corecursive structure.
 --
@@ -264,26 +264,26 @@ gembed = to . sumToRep . unGBase
 --
 -- @
 -- replicate :: Int -> a -> [Int]
--- replicate n a = 'gana' alg n where
+-- replicate n a = 'anaG' alg n where
 --   alg 0 = 'con_' \@\"[]\"
 --   alg n = 'con_' \@\":\" a (n-1)
 -- @
-gana :: (Generic a, GFromSum a, Functor (GBase a)) => (r -> GBase a r) -> r -> a
-gana f = gana_f where gana_f = gembed . fmap gana_f . f
+anaG :: (Generic a, GFromSum a, Functor (GBase a)) => (r -> GBase a r) -> r -> a
+anaG f = anaG_f where anaG_f = embedG . fmap anaG_f . f
 
 -- | Monadic unfolding.
-ganaM
+anaGM
   :: (Generic a, GFromSum a, Traversable (GBase a), Monad m)
   => (r -> m (GBase a r)) -> r -> m a
-ganaM f = ganaM_f where
-  ganaM_f r = f r >>= fmap gembed . traverse ganaM_f
+anaGM f = anaGM_f where
+  anaGM_f r = f r >>= fmap embedG . traverse anaGM_f
 
 -- | Monadic unfolding with constant seed.
-ganaM0
+anaGM0
   :: (Generic a, GFromSum a, Traversable (GBase a), Monad m)
   => m (GBase a ()) -> m a
-ganaM0 m = ganaM0_m where
-  ganaM0_m = m >>= fmap gembed . traverse (\_ -> ganaM0_m)
+anaGM0 m = anaGM0_m where
+  anaGM0_m = m >>= fmap embedG . traverse (\_ -> anaGM0_m)
 
 
 -- | Construct a value in a base functor given a tuple (which can be any

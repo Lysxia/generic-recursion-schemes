@@ -47,7 +47,7 @@ data Ty = I | B
   deriving Eq
 
 eval :: (Variable -> Int) -> Expr -> Maybe Expr
-eval ctx = gcata $ case_
+eval ctx = cataG $ case_
   (  #_Var --> Just . Int . ctx
   |. #_Int --> Just . Int
   |. #_Bool --> Just . Bool
@@ -83,7 +83,7 @@ eval_manual ctx = go where
     Just (Bool (a' == b'))
 
 typecheck :: Expr -> Maybe Ty
-typecheck = gcata $ case_
+typecheck = cataG $ case_
   (  #_Var --> (\_ -> Just I)
   |. #_Int --> (\_ -> Just I)
   |. #_Bool --> (\_ -> Just B)
@@ -153,7 +153,7 @@ genInt :: Int -> Gen Int
 genInt n = lift (Rand $ \(Stream a as) -> (a `mod` n, as))
 
 gen :: Ty -> Gen Expr
-gen = ganaM genAlg
+gen = anaGM genAlg
 
 genAlg :: Ty -> Gen (GBase Expr Ty)
 genAlg ty = do
@@ -173,7 +173,7 @@ genLeaf I = join $ choose
 genLeaf B = con_ @"Bool" <$> genBool
 
 genLeaf' :: Ty -> Gen Expr
-genLeaf' = fmap gembed . genLeaf
+genLeaf' = fmap embedG . genLeaf
 
 genNode :: Ty -> Gen (GBase Expr Ty)
 genNode I = choose
@@ -246,7 +246,7 @@ data S = L [S] | Atom Token
 data Token = TokV Int | TokN Int | TokTrue | TokFalse | TokIf | TokPlus | TokEq
 
 parse :: S -> ContT r Maybe Expr
-parse = ganaM $ \s ->
+parse = anaGM $ \s ->
   case s of
     Atom (TokV v) -> pure (con_ @"Var" (V v))
     Atom TokFalse -> pure (con_ @"Bool" False)
