@@ -36,9 +36,16 @@ import qualified Generic.RecursionSchemes.Internal.Vinyl as Vinyl
 
 -- | The base functor of a generic type @a@.
 --
+-- Construction and destruction is enabled by functions, instead of native
+-- constructs.
+--
+--   [Constructors] 'con' or 'con_'
+--   [Destructors] 'case_', 'caseDefault', and ('match' or 'match_')
+--
 -- Note that this implementation, based on "GHC.Generics", has trouble with
--- parametric types, and it is often necessary to wrap type parameters
--- in 'Identity' and to apply coercions in a few places.
+-- parametric types, and it is often necessary to wrap type parameters in
+-- 'Identity' and to apply coercions in a few places (such as in the example
+-- below).
 --
 -- === __Example__
 --
@@ -73,6 +80,8 @@ gproject :: (Generic a, GToSum a) => a -> GBase a a
 gproject = repToSum . from
 
 -- | Fold a recursive structure.
+--
+-- Algebras can be defined using 'case_', 'caseDefault', 'match', 'match_'.
 --
 -- === __Example__
 --
@@ -112,13 +121,18 @@ gcata f = gcata_f where gcata_f = f . fmap gcata_f . gproject
 -- 'match' must be applied to a constructor name as a type-level string (@cname@).
 -- The first value-level argument (of type @t -> z@) is one branch in a
 -- pattern-match construct for a base functor represented as an extensible
--- 'Sum'; the branch must be given as an uncurried function that takes a tuple
--- (in any type with a single constructor having the right number and types of
--- fields).
+-- 'Sum'; the branch must be given as an uncurried function that takes a tuple.
 -- The second argument (@Sum (ss1 ++ ss2) _ -> z@) represents the remaining
 -- branches.
 --
+-- Tuples (the type @t@) can be actual tuples @(x,y,z)@, or any @Generic@
+-- type with a single constructor having the right number and types of fields.
+-- This extension enables a workaround for the fact that tuples of large sizes
+-- do not have @Generic@ instances defined (for compile-time performance).
+--
 -- See also 'match_'.
+--
+-- === Example
 --
 -- For a sum equivalent to this type:
 --
@@ -191,6 +205,8 @@ gembed :: (Generic a, GFromSum a) => GBase a a -> a
 gembed = to . sumToRep
 
 -- | Unfold a corecursive structure.
+--
+-- Coalgebras can be defined using 'con' or 'con_'.
 --
 -- === __Example__
 --
