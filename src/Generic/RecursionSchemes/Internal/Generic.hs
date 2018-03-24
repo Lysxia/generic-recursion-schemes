@@ -256,7 +256,7 @@ gembed = to . sumToRep . unGBase
 -- @
 -- replicate :: Int -> a -> [Int]
 -- replicate 0 _ = []
--- replicate n a = replicate (n-1) a
+-- replicate n a = a : replicate (n-1) a
 -- @
 --
 -- With generic-recursion-schemes, this can be written as
