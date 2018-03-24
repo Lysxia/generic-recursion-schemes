@@ -124,6 +124,29 @@ gcata :: (Generic a, GToSum a, Functor (GBase a)) => (GBase a r -> r) -> a -> r
 gcata f = gcata_f where gcata_f = f . fmap gcata_f . gproject
 
 -- | Apply a total handler.
+--
+-- === Example
+--
+-- For a sum equivalent to this type...
+--
+-- @
+-- data MyType
+--   = MyConstr0
+--   | MyConstr1 Int
+--   | MyConstr2 MyType MyType
+--   deriving 'Generic'
+-- @
+--
+-- ... pattern-matching looks like this:
+--
+-- @
+-- -- In any order
+-- 'case_'
+--   (  'match' \@\"MyConstr2\" (\\(a, b) -> g a b)  -- 2 fields or more: tuple (or any equivalent 'Generic' product type)
+--   '|.' 'match' \@\"MyConstr1\" (\\a      -> f a)    -- 1 field: unwrapped
+--   '|.' 'match' \@\"MyConstr0\" (\\()     -> e)      -- 0 field: () (or any equivalent 'Generic' type)
+--   ) :: 'GBase' MyType x -> y
+-- @
 case_ :: Handler r z (GBaseSum a) '[] -> GBase a r -> z
 case_ h = Sum.case_ h . unGBase
 
@@ -151,40 +174,18 @@ caseDefaultOf t h def = caseDefault h def t
 --
 -- 'match' must be applied to a constructor name as a type-level string
 -- (@cname :: 'Symbol'@).
--- The value-level argument (of type @t -> z@) is one branch in a
--- pattern-match construct for a base functor; the branch must be given as an
--- uncurried function that takes a tuple.
---
--- Tuples (the type @t@) can be actual tuples @(x,y,z)@, or any @Generic@
--- type with a single constructor having the right number and types of fields.
--- This extension enables a workaround for the fact that anonymous tuples of
--- large sizes do not have @Generic@ instances defined (for compile-time
--- performance).
+-- The value-level argument (of type @t -> z@) handles the named constructor,
+-- taking its fields in a tuple.
 --
 -- See also 'match_'.
 --
--- === Example
+-- ==== Note
 --
--- For a sum equivalent to this type:
---
--- @
--- data MyType
---   = MyConstr0
---   | MyConstr1 Int
---   | MyConstr2 MyType MyType
---   deriving 'Generic'
--- @
---
--- Pattern-matching looks like this:
---
--- @
--- -- In any order
--- 'case_'
---   (  'match' \@\"MyConstr2\" (\\(a, b) -> g a b)  -- 2 fields or more: tuple (or any equivalent 'Generic' product type)
---   '|.' 'match' \@\"MyConstr1\" (\\a      -> f a)    -- 1 field: unwrapped
---   '|.' 'match' \@\"MyConstr0\" (\\()     -> e)      -- 0 field: () (or any equivalent 'Generic' type)
---   ) :: 'GBase' MyType x -> y
--- @
+-- Tuples (the type @t@) can be actual tuples @(x,y,z)@, or any 'Generic'
+-- type with a single constructor having the right number and types of fields.
+-- This extension enables a workaround for the fact that anonymous tuples of
+-- large sizes do not have 'Generic' instances defined (for compile-time
+-- performance).
 match
   :: forall c rs s s' a z t
   .  MatchSumUncurried c rs s s' a t
@@ -270,8 +271,9 @@ gembed = to . sumToRep . unGBase
 gana :: (Generic a, GFromSum a, Functor (GBase a)) => (r -> GBase a r) -> r -> a
 gana f = gana_f where gana_f = gembed . fmap gana_f . f
 
--- | Construct a value in a base functor given a tuple (the constructor of any
--- single-constructor type with the right number and types of fields).
+-- | Construct a value in a base functor given a tuple (which can be any
+-- single-constructor type with the right number and types of fields, see
+-- note on 'match').
 --
 -- @
 -- 'con' \@\":\" (3, Just 4) :: GBase [Int] (Maybe Int)
