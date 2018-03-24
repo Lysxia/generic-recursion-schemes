@@ -41,7 +41,7 @@ import qualified Generic.RecursionSchemes.Internal.Vinyl as Vinyl
 -- constructs.
 --
 --   [Constructors] 'con' or 'con_'
---   [Destructors] 'case_', 'caseDefault', and ('match', 'match_', or @('-->')@)
+--   [Destructors] 'case_', 'caseDefault', and ('match' or 'match_')
 --
 -- Note that this implementation, based on "GHC.Generics", has trouble with
 -- parametric types, and it is often necessary to wrap type parameters in
