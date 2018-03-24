@@ -21,7 +21,7 @@ import GHC.TypeLits
 
 import Generic.RecursionSchemes.Internal.TyFun (type (==))
 
--- | A sum of functors.
+-- | A tagged sum of functors.
 data Sum (rs :: [(Symbol, * -> *)]) a where
   Here :: f a -> Sum ('(s, f) ': rs) a
   There :: Sum rs a -> Sum ('(s, f) ': rs) a

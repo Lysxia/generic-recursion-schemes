@@ -36,7 +36,13 @@ import qualified Generic.RecursionSchemes.Internal.Vinyl as Vinyl
 
 -- | The base functor of a generic type @a@.
 --
--- For example with lists, the base functor of @[a]@ is isomorphic to:
+-- Note that this implementation, based on "GHC.Generics", has trouble with
+-- parametric types, and it is often necessary to wrap type parameters
+-- in 'Identity' and to apply coercions in a few places.
+--
+-- === __Example__
+--
+-- With lists, the base functor of @[a]@ is isomorphic to:
 --
 -- @
 -- -- From recursion-schemes
@@ -49,15 +55,13 @@ import qualified Generic.RecursionSchemes.Internal.Vinyl as Vinyl
 -- @
 -- type ListF a = 'GBase' ['Identity' a]
 -- @
---
--- Note that this implementation, based on "GHC.Generics", has trouble with
--- parametric types, and it is often necessary to wrap type parameters
--- in 'Identity' and to apply coercions in a few places.
 type GBase a = Sum (ToSum a (Rep a))
 
 -- | Unwrap the base functor.
 --
--- For example with lists, this is equivalent to:
+-- === __Example__
+--
+-- With lists, 'gproject' is equivalent to:
 --
 -- @
 -- -- With ListF from recursion-schemes
@@ -70,7 +74,9 @@ gproject = repToSum . from
 
 -- | Fold a recursive structure.
 --
--- For example, 'Data.List.foldr' is equivalent to:
+-- === __Example__
+--
+-- 'Data.List.foldr' is equivalent to:
 --
 -- @
 -- -- With ListF and cata from recursion-schemes
@@ -171,7 +177,9 @@ instance RepToSum a (Rep a) => GToSum a
 
 -- | Wrap the base functor.
 --
--- For example with lists, this is equivalent to:
+-- === __Example__
+--
+-- With lists, 'gembed' is equivalent to:
 --
 -- @
 -- -- With ListF from recursion-schemes
@@ -184,7 +192,9 @@ gembed = to . sumToRep
 
 -- | Unfold a corecursive structure.
 --
--- For example, consider 'replicate'
+-- === __Example__
+--
+-- Consider 'replicate':
 --
 -- @
 -- replicate :: Int -> a -> [Int]
