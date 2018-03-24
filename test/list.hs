@@ -8,11 +8,13 @@
 
 import Data.Coerce (coerce)
 import Data.Function (fix)
+import Data.Functor.Compose
 import Data.Functor.Identity
 import Data.Vinyl
 import Test.Inspection
 
 import Generic.RecursionSchemes
+import Generic.RecursionSchemes.Internal.Vinyl (Lazy(..))
 
 main :: IO ()
 main = do
@@ -22,6 +24,7 @@ main = do
 f0 :: ListF Int Int -> Int
 f0 Nil = 0
 f0 (Cons n m) = n + m :: Int
+{-# INLINE f0 #-}
 
 sum0_manual :: [Int] -> Int
 sum0_manual [] = 0
@@ -86,7 +89,10 @@ pattern Nil = ListF (Here (BaseConF RNil))
 
 pattern Cons :: b -> a -> ListF b a
 pattern Cons h t =
-  ListF (There (Here (BaseConF (FromMaybeF (Identity h) :& FromMaybeF t :& RNil))))
+  ListF (There (Here (BaseConF
+    (Compose (Lazy (FromMaybeF (Identity h)))
+      :& Compose (Lazy (FromMaybeF t))
+      :& RNil))))
 
 {-# COMPLETE Nil, Cons #-}
 
