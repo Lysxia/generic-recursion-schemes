@@ -29,9 +29,6 @@ module Generic.RecursionSchemes
   , con
   , con_
 
-    -- *** Reexported from base
-  , (&)
-
     -- * Infrastructure
 
     -- | Possibly useful interface to define pattern synonyms and some other
@@ -47,7 +44,6 @@ module Generic.RecursionSchemes
   , LazyT
   ) where
 
-import Data.Function ((&))
 import Generic.RecursionSchemes.Internal.Generic
 import Generic.RecursionSchemes.Internal.Sum (Sum(..), Handler(..), (|.))
 import Generic.RecursionSchemes.Internal.Vinyl (Lazy(..), LazyT)

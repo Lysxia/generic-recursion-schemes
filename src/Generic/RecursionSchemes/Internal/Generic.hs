@@ -112,8 +112,9 @@ gproject = GBase . repToSum . from
 -- foldr :: (a -> b -> b) -> b -> [a] -> b
 -- foldr f b = 'gcata' alg . ('Data.Coerce.coerce' :: [a] -> ['Identity' a]) where
 --   alg = 'case_'
---     'Data.Function.&' 'match' \@\"[]\" (\\() -> b)
---     'Data.Function.&' 'match' \@\":\"  (\\(a, b) -> f a b)
+--     (  'match' \@\"[]\" (\\() -> b)
+--     '|.' 'match' \@\":\"  (\\(a, b) -> f a b)
+--     )
 -- @
 gcata :: (Generic a, GToSum a, Functor (GBase a)) => (GBase a r -> r) -> a -> r
 gcata f = gcata_f where gcata_f = f . fmap gcata_f . gproject
@@ -147,13 +148,14 @@ caseDefaultOf t h def = caseDefault h def t
 -- 'match' must be applied to a constructor name as a type-level string
 -- (@cname :: 'Symbol'@).
 -- The value-level argument (of type @t -> z@) is one branch in a
--- pattern-match construct for a base functor represented as an extensible
--- 'Sum'; the branch must be given as an uncurried function that takes a tuple.
+-- pattern-match construct for a base functor; the branch must be given as an
+-- uncurried function that takes a tuple.
 --
 -- Tuples (the type @t@) can be actual tuples @(x,y,z)@, or any @Generic@
 -- type with a single constructor having the right number and types of fields.
--- This extension enables a workaround for the fact that tuples of large sizes
--- do not have @Generic@ instances defined (for compile-time performance).
+-- This extension enables a workaround for the fact that anonymous tuples of
+-- large sizes do not have @Generic@ instances defined (for compile-time
+-- performance).
 --
 -- See also 'match_'.
 --
@@ -172,12 +174,12 @@ caseDefaultOf t h def = caseDefault h def t
 -- Pattern-matching looks like this:
 --
 -- @
+-- -- In any order
 -- 'case_'
---   'Data.Function.&' 'match' \@\"MyConstr2\" (\\(a, b) -> g a b)  -- 2 fields or more: tuple (or any equivalent 'Generic' product type)
---   'Data.Function.&' 'match' \@\"MyConstr1\" (\\a      -> f a)    -- 1 field: unwrapped
---   'Data.Function.&' 'match' \@\"MyConstr0\" (\\()     -> e)      -- 0 field: () (or any equivalent 'Generic' type)
---   -- in any order
---   :: 'GBase' MyType x -> y
+--   (  'match' \@\"MyConstr2\" (\\(a, b) -> g a b)  -- 2 fields or more: tuple (or any equivalent 'Generic' product type)
+--   '|.' 'match' \@\"MyConstr1\" (\\a      -> f a)    -- 1 field: unwrapped
+--   '|.' 'match' \@\"MyConstr0\" (\\()     -> e)      -- 0 field: () (or any equivalent 'Generic' type)
+--   ) :: 'GBase' MyType x -> y
 -- @
 match
   :: forall c t z a rs ss ss'
@@ -195,12 +197,12 @@ match f = Sum.match @c @(BaseConF rs)
 -- See also 'match'.
 --
 -- @
+-- -- In any order
 -- 'case_'
---   'Data.Function.&' 'match_' \@\"MyConstr0\"          e
---   'Data.Function.&' 'match_' \@\"MyConstr1\" (\\a   -> f a)
---   'Data.Function.&' 'match_' \@\"MyConstr2\" (\\a b -> g a b)
---   -- in any order
---   :: 'GBase' MyType x -> y
+--   (  'match_' \@\"MyConstr0\"          e
+--   '|.' 'match_' \@\"MyConstr1\" (\\a   -> f a)
+--   '|.' 'match_' \@\"MyConstr2\" (\\a b -> g a b)
+--   ) :: 'GBase' MyType x -> y
 -- @
 match_
   :: forall c z f a rs ss ss'

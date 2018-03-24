@@ -83,8 +83,8 @@ instance (Traversable f, TraversableSum rs) => TraversableSum ('(s, f) ': rs) wh
 -- handler), @a@ is the sum functor's parameter, and @z@ is the result type of
 -- the handler.
 --
--- A total handler (handling all cases) has the last argument equal to @'[]@:
--- @'Handler' a z s '[]@.
+-- A total handler (handling all cases) has the last argument equal to @'[]@,
+-- that is, @'Handler' a z s '[]@.
 newtype Handler a z s s' = Handler
   { unHandler :: (Sum s' a -> z) -> Sum s a -> z }
 
@@ -122,9 +122,9 @@ class Match c f rs rs' where
   --
   -- @
   -- 'case_'
-  --   '&' 'match' \@\"C0\" (\('Data.Functor.Identity.Identity' a) -> [a])
-  --   '&' 'match' \@\"C1\" ('id' :: [a] -> [a])
-  --   '&' 'match' \@\"C2\" 'Data.Maybe.maybeToList'
+  --   (  'match' \@\"C0\" (\\('Data.Functor.Identity.Identity' a) -> [a])
+  --   '|.' 'match' \@\"C1\" ('id' :: [a] -> [a])
+  --   '|.' 'match' \@\"C2\" 'Data.Maybe.maybeToList' )
   --   -- in any order
   --   :: 'Sum' '[ '(\"C0\", 'Data.Functor.Identity.Identity'), '(\"C1\", []), '(\"C2\", 'Maybe')] a -> [a]
   -- @
