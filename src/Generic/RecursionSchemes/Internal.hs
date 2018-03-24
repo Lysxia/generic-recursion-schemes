@@ -31,8 +31,12 @@ module Generic.RecursionSchemes.Internal
   , ConstructSumUncurried
   , ConstructSumCurried
   , ConstructSum
+
+    -- * Overloaded labels
+  , Pattern(..)
   ) where
 
 import Generic.RecursionSchemes.Internal.Sum (Sum(..), Handler(..))
 import Generic.RecursionSchemes.Internal.Generic
+import Generic.RecursionSchemes.Internal.Labels
 import Generic.RecursionSchemes.Internal.Vinyl (Lazy(..), LazyT)
