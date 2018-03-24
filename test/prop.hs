@@ -5,7 +5,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# OPTIONS_GHC -O -fplugin Test.Inspection.Plugin #-}
 {-# OPTIONS_GHC -dsuppress-all #-}
-{-# OPTIONS_GHC -funfolding-use-threshold=500 #-}
+{-# OPTIONS_GHC -funfolding-use-threshold=600 #-}
 
 import Data.Coerce
 import GHC.Generics
