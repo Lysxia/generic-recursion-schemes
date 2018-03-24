@@ -21,7 +21,7 @@ module Generic.RecursionSchemes.Internal.Generic where
 
 import Control.Monad ((>=>))
 import Data.Bifunctor
-import Data.Functor.Identity
+import Data.Functor.Compose
 import Data.Function (fix)
 import Data.Type.Bool
 import GHC.Generics
@@ -211,27 +211,27 @@ type family MapFromMaybe a (rs :: [Maybe *]) :: [*] where
   MapFromMaybe a '[] = '[]
   MapFromMaybe a (r ': rs) = FromMaybe a r ': MapFromMaybe a rs
 
+newtype FromMaybeF a m = FromMaybeF { unFromMaybeF :: FromMaybe a m }
+
 class DistributeFromMaybe rs where
   distributeFromMaybe
-    :: Rec (FromMaybeF a) rs -> Rec Identity (MapFromMaybe a rs)
+    :: Rec (LazyT (FromMaybeF a)) rs -> Rec Lazy (MapFromMaybe a rs)
 
 instance DistributeFromMaybe '[] where
   distributeFromMaybe RNil = RNil
 
 instance DistributeFromMaybe rs => DistributeFromMaybe (r ': rs) where
-  distributeFromMaybe (FromMaybeF r :& rs) =
-    Identity r :& distributeFromMaybe rs
+  distributeFromMaybe (Compose r :& rs) =
+    fmap unFromMaybeF r :& distributeFromMaybe rs
 
 class FactorFromMaybe rs where
-  factorFromMaybe :: Rec Identity (MapFromMaybe a rs) -> Rec (FromMaybeF a) rs
+  factorFromMaybe :: Rec Lazy (MapFromMaybe a rs) -> Rec (LazyT (FromMaybeF a)) rs
 
 instance FactorFromMaybe '[] where
   factorFromMaybe RNil = RNil
 
 instance FactorFromMaybe rs => FactorFromMaybe (r ': rs) where
-  factorFromMaybe (Identity r :& rs) = FromMaybeF r :& factorFromMaybe rs
-
-newtype FromMaybeF a m = FromMaybeF (FromMaybe a m)
+  factorFromMaybe (r :& rs) = Compose (fmap FromMaybeF r) :& factorFromMaybe rs
 
 mapFromMaybeF
   :: forall m a b
@@ -251,17 +251,21 @@ traverseFromMaybeF
   => (a -> f b) -> FromMaybeF a m -> f (FromMaybeF b m)
 traverseFromMaybeF f (FromMaybeF m) = FromMaybeF <$> maybe' @m (f m) (pure m)
 
-newtype BaseConF rs a = BaseConF { unBaseConF :: Rec (FromMaybeF a) rs }
+newtype BaseConF rs a =
+  BaseConF { unBaseConF :: Rec (LazyT (FromMaybeF a)) rs }
 
 instance MapRec IsMaybe rs => Functor (BaseConF rs) where
-  fmap f (BaseConF r) = BaseConF (mapRec @IsMaybe (mapFromMaybeF f) r)
+  fmap f (BaseConF r) = BaseConF (mapRec @IsMaybe (fmap1 (mapFromMaybeF f)) r)
 
 instance FoldRec IsMaybe rs => Foldable (BaseConF rs) where
-  foldr f b (BaseConF r) = foldRec @IsMaybe (foldFromMaybeF f) b r
+  foldr f b (BaseConF r) =
+    foldRec @IsMaybe (foldFromMaybeF f . unLazy . getCompose) b r
 
 instance (MapRec IsMaybe rs, FoldRec IsMaybe rs, TraverseRec IsMaybe rs)
   => Traversable (BaseConF rs) where
-  traverse f (BaseConF r) = BaseConF <$> traverseRec @IsMaybe (traverseFromMaybeF f) r
+  traverse f (BaseConF r) =
+    BaseConF <$> traverseRec @IsMaybe (traverse1 (traverseFromMaybeF f)) r
+
 
 type ToRec e f = ToRec' e f '[]
 
@@ -290,7 +294,7 @@ class RepToSum' e f rs where
 
 class RepToProduct' e f rs where
   repToProduct'
-    :: f p -> Rec (FromMaybeF e) rs -> Rec (FromMaybeF e) (ToRec' e f rs)
+    :: f p -> Rec (LazyT (FromMaybeF e)) rs -> Rec (LazyT (FromMaybeF e)) (ToRec' e f rs)
 
 instance RepToSum' e f '[] => RepToSum e (M1 D i f) where
   repToSum (M1 f) = repToSum' @_ @_ @'[] (Left f)
@@ -314,7 +318,8 @@ instance (RepToProduct' e f (ToRec' e g rs), RepToProduct' e g rs)
   repToProduct' (f :*: g) rs = repToProduct' f (repToProduct' g rs)
 
 instance DecEq e r => RepToProduct' e (M1 i c (K1 j r)) rs where
-  repToProduct' (M1 (K1 r)) rs = FromMaybeF (decEq @e @r r r) :& rs
+  repToProduct' (M1 (K1 r)) rs =
+    Compose (Lazy (FromMaybeF (decEq @e @r r r))) :& rs
 
 instance RepToProduct' e U1 rs where
   repToProduct' U1 rs = rs
@@ -327,7 +332,8 @@ class SumToRep' e f rs where
 
 class ProductToRep' e f rs where
   productToRep'
-    :: Rec (FromMaybeF e) (ToRec' e f rs) -> (f p, Rec (FromMaybeF e) rs)
+    :: Rec (LazyT (FromMaybeF e)) (ToRec' e f rs)
+    -> (f p, Rec (LazyT (FromMaybeF e)) rs)
 
 instance SumToRep' e f '[] => SumToRep e (M1 D c f) where
   sumToRep s = case sumToRep' @_ @_ @'[] s of
@@ -357,7 +363,7 @@ instance (ProductToRep' e f (ToRec' e g rs), ProductToRep' e g rs)
     (f :*: g, s'')
 
 instance DecEq e r => ProductToRep' e (M1 i c (K1 j r)) rs where
-  productToRep' (FromMaybeF r :& rs) = (M1 (K1 (decEq @e @r r r)), rs)
+  productToRep' (Compose (Lazy (FromMaybeF r)) :& rs) = (M1 (K1 (decEq @e @r r r)), rs)
 
 instance ProductToRep' e U1 rs where
   productToRep' rs = (U1, rs)
