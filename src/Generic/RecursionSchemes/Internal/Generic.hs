@@ -45,8 +45,8 @@ import qualified Generic.RecursionSchemes.Internal.Vinyl as Vinyl
 --
 -- Note that this implementation, based on "GHC.Generics", has trouble with
 -- parametric types, and it is often necessary to wrap type parameters in
--- 'Identity' and to apply coercions in a few places (such as in the example
--- below).
+-- 'Data.Functor.Identity.Identity' and to apply coercions in a few places
+-- (such as in the example below).
 --
 -- === __Example__
 --
@@ -61,7 +61,7 @@ import qualified Generic.RecursionSchemes.Internal.Vinyl as Vinyl
 -- can be derived with 'GBase'.
 --
 -- @
--- type ListF a = 'GBase' ['Identity' a]
+-- type ListF a = 'GBase' ['Data.Functor.Identity.Identity' a]
 -- @
 newtype GBase a x = GBase { unGBase :: Sum (GBaseSum a) x }
 
@@ -114,7 +114,7 @@ gproject = GBase . repToSum . from
 --
 -- @
 -- foldr :: (a -> b -> b) -> b -> [a] -> b
--- foldr f b = 'gcata' alg . ('Data.Coerce.coerce' :: [a] -> ['Identity' a]) where
+-- foldr f b = 'gcata' alg . ('Data.Coerce.coerce' :: [a] -> ['Data.Functor.Identity.Identity' a]) where
 --   alg = 'case_'
 --     (  'match' \@\"[]\" (\\() -> b)
 --     '|.' 'match' \@\":\"  (\\(a, b) -> f a b)
