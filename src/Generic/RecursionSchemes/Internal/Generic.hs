@@ -62,7 +62,7 @@ import qualified Generic.RecursionSchemes.Internal.Vinyl as Vinyl
 -- @
 -- type ListF a = 'GBase' ['Identity' a]
 -- @
-type GBase a = Sum (ToSum a (Rep a))
+newtype GBase a x = GBase { unGBase :: Sum (ToSum a (Rep a)) x }
 
 -- | Unwrap the base functor.
 --
@@ -77,7 +77,7 @@ type GBase a = Sum (ToSum a (Rep a))
 -- project (a : as) = Cons a as
 -- @
 gproject :: (Generic a, GToSum a) => a -> GBase a a
-gproject = repToSum . from
+gproject = GBase . repToSum . from
 
 -- | Fold a recursive structure.
 --
@@ -202,7 +202,7 @@ instance RepToSum a (Rep a) => GToSum a
 -- embed (Cons a as) = a : as
 -- @
 gembed :: (Generic a, GFromSum a) => GBase a a -> a
-gembed = to . sumToRep
+gembed = to . sumToRep . unGBase
 
 -- | Unfold a corecursive structure.
 --
