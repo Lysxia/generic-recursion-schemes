@@ -28,7 +28,8 @@ import GHC.TypeLits
 
 import Data.Vinyl
 
-import Generic.RecursionSchemes.Internal.Sum hiding (match, con)
+import Generic.RecursionSchemes.Internal.Sum hiding
+  (case_, caseOf, match, match_)
 import qualified Generic.RecursionSchemes.Internal.Sum as Sum
 import Generic.RecursionSchemes.Internal.TyFun
 import Generic.RecursionSchemes.Internal.Vinyl hiding (ToRec, toRec)
@@ -44,8 +45,8 @@ import qualified Generic.RecursionSchemes.Internal.Vinyl as Vinyl
 --
 -- Note that this implementation, based on "GHC.Generics", has trouble with
 -- parametric types, and it is often necessary to wrap type parameters in
--- 'Identity' and to apply coercions in a few places (such as in the example
--- below).
+-- 'Data.Functor.Identity.Identity' and to apply coercions in a few places
+-- (such as in the example below).
 --
 -- === __Example__
 --
@@ -60,9 +61,23 @@ import qualified Generic.RecursionSchemes.Internal.Vinyl as Vinyl
 -- can be derived with 'GBase'.
 --
 -- @
--- type ListF a = 'GBase' ['Identity' a]
+-- type ListF a = 'GBase' ['Data.Functor.Identity.Identity' a]
 -- @
-type GBase a = Sum (ToSum a (Rep a))
+newtype GBase a x = GBase { unGBase :: Sum (GBaseSum a) x }
+
+-- | A type-level list representing the constructors of the base functor
+-- of @a@.
+type GBaseSum a = ToSum a (Rep a)
+
+instance FunctorSum (GBaseSum a) => Functor (GBase a) where
+  fmap f = GBase . fmap f . unGBase
+
+instance FoldableSum (GBaseSum a) => Foldable (GBase a) where
+  foldr f b = foldr f b . unGBase
+
+instance TraversableSum (GBaseSum a) => Traversable (GBase a) where
+  traverse f = fmap GBase . traverse f . unGBase
+
 
 -- | Unwrap the base functor.
 --
@@ -77,7 +92,7 @@ type GBase a = Sum (ToSum a (Rep a))
 -- project (a : as) = Cons a as
 -- @
 gproject :: (Generic a, GToSum a) => a -> GBase a a
-gproject = repToSum . from
+gproject = GBase . repToSum . from
 
 -- | Fold a recursive structure.
 --
@@ -99,42 +114,20 @@ gproject = repToSum . from
 --
 -- @
 -- foldr :: (a -> b -> b) -> b -> [a] -> b
--- foldr f b = 'gcata' alg . ('Data.Coerce.coerce' :: [a] -> ['Identity' a]) where
+-- foldr f b = 'gcata' alg . ('Data.Coerce.coerce' :: [a] -> ['Data.Functor.Identity.Identity' a]) where
 --   alg = 'case_'
---     'Data.Function.&' 'match' \@\"[]\" (\\() -> b)
---     'Data.Function.&' 'match' \@\":\"  (\\(a, b) -> f a b)
+--     (  'match' \@\"[]\" (\\() -> b)
+--     '|.' 'match' \@\":\"  (\\(a, b) -> f a b)
+--     )
 -- @
 gcata :: (Generic a, GToSum a, Functor (GBase a)) => (GBase a r -> r) -> a -> r
 gcata f = gcata_f where gcata_f = f . fmap gcata_f . gproject
 
--- | Approximate, simplified signature:
---
--- @
--- match
---   :: forall cname t z ss1 ss2
---   .  _omittedConstraints
---   => (t -> z)
---   -> (Sum (ss1               ++ ss2) _ -> z)
---   -> (Sum (ss1 ++ (cname, _) ++ ss2) _ -> z)
--- @
---
--- 'match' must be applied to a constructor name as a type-level string (@cname@).
--- The first value-level argument (of type @t -> z@) is one branch in a
--- pattern-match construct for a base functor represented as an extensible
--- 'Sum'; the branch must be given as an uncurried function that takes a tuple.
--- The second argument (@Sum (ss1 ++ ss2) _ -> z@) represents the remaining
--- branches.
---
--- Tuples (the type @t@) can be actual tuples @(x,y,z)@, or any @Generic@
--- type with a single constructor having the right number and types of fields.
--- This extension enables a workaround for the fact that tuples of large sizes
--- do not have @Generic@ instances defined (for compile-time performance).
---
--- See also 'match_'.
+-- | Apply a total handler.
 --
 -- === Example
 --
--- For a sum equivalent to this type:
+-- For a sum equivalent to this type...
 --
 -- @
 -- data MyType
@@ -144,24 +137,60 @@ gcata f = gcata_f where gcata_f = f . fmap gcata_f . gproject
 --   deriving 'Generic'
 -- @
 --
--- Pattern-matching looks like this:
+-- ... pattern-matching looks like this:
 --
 -- @
+-- -- In any order
 -- 'case_'
---   'Data.Function.&' 'match' \@\"MyConstr2\" (\\(a, b) -> g a b)  -- 2 fields or more: tuple (or any equivalent 'Generic' product type)
---   'Data.Function.&' 'match' \@\"MyConstr1\" (\\a      -> f a)    -- 1 field: unwrapped
---   'Data.Function.&' 'match' \@\"MyConstr0\" (\\()     -> e)      -- 0 field: () (or any equivalent 'Generic' type)
---   -- in any order
---   :: 'GBase' MyType x -> y
+--   (  'match' \@\"MyConstr2\" (\\(a, b) -> g a b)  -- 2 fields or more: tuple (or any equivalent 'Generic' product type)
+--   '|.' 'match' \@\"MyConstr1\" (\\a      -> f a)    -- 1 field: unwrapped
+--   '|.' 'match' \@\"MyConstr0\" (\\()     -> e)      -- 0 field: () (or any equivalent 'Generic' type)
+--   ) :: 'GBase' MyType x -> y
 -- @
+case_ :: Handler r z (GBaseSum a) '[] -> GBase a r -> z
+case_ h = Sum.case_ h . unGBase
+
+-- | Flipped 'case_' so the scrutinee may appear first.
+caseOf :: GBase a r -> Handler r z (GBaseSum a) '[] -> z
+caseOf = flip case_
+
+-- | 'case_' with a default handler.
+caseDefault :: Handler r z (GBaseSum a) rs -> (GBase a r -> z) -> GBase a r -> z
+caseDefault h def t = case_ (h |. default_ (\_ -> def t)) t
+
+-- | Flipped 'caseDefault' so the scrutinee may appear first.
+caseDefaultOf :: GBase a r -> Handler r z (GBaseSum a) rs -> (GBase a r -> z) -> z
+caseDefaultOf t h def = caseDefault h def t
+
+-- | Approximate, simplified signature:
+--
+-- @
+-- match
+--   :: forall cname t z s1 s2
+--   .  _omittedConstraints
+--   => (t -> z)
+--   -> Handler _ z (s1 ++ cname ++ s2) (s1 ++ s2)
+-- @
+--
+-- 'match' must be applied to a constructor name as a type-level string
+-- (@cname :: 'Symbol'@).
+-- The value-level argument (of type @t -> z@) handles the named constructor,
+-- taking its fields in a tuple.
+--
+-- See also 'match_'.
+--
+-- ==== Note
+--
+-- Tuples (the type @t@) can be actual tuples @(x,y,z)@, or any 'Generic'
+-- type with a single constructor having the right number and types of fields.
+-- This extension enables a workaround for the fact that anonymous tuples of
+-- large sizes do not have 'Generic' instances defined (for compile-time
+-- performance).
 match
-  :: forall c t z a rs ss ss'
-  .  ( Match c (BaseConF rs) ss ss'
-     , FromRec (MapFromMaybe a rs) t
-     , DistributeFromMaybe rs
-     )
-  => (t -> z) -> (Sum ss' a -> z) -> Sum ss a -> z
-match f = Sum.match @c @(BaseConF rs) (f . fromRec . distributeFromMaybe . unBaseConF)
+  :: forall c rs s s' a z t
+  .  MatchSumUncurried c rs s s' a t
+  => (t -> z) -> Handler a z s s'
+match f = matchGBaseSum @c @rs (f . fromRec)
 
 -- | One branch in a pattern-match construct for a base functor represented as an
 -- extensible 'Sum'; the branch is given as a curried function.
@@ -169,24 +198,37 @@ match f = Sum.match @c @(BaseConF rs) (f . fromRec . distributeFromMaybe . unBas
 -- See also 'match'.
 --
 -- @
+-- -- In any order
 -- 'case_'
---   'Data.Function.&' 'match_' \@\"MyConstr0\"          e
---   'Data.Function.&' 'match_' \@\"MyConstr1\" (\\a   -> f a)
---   'Data.Function.&' 'match_' \@\"MyConstr2\" (\\a b -> g a b)
---   -- in any order
---   :: 'GBase' MyType x -> y
+--   (  'match_' \@\"MyConstr0\"          e
+--   '|.' 'match_' \@\"MyConstr1\" (\\a   -> f a)
+--   '|.' 'match_' \@\"MyConstr2\" (\\a b -> g a b)
+--   ) :: 'GBase' MyType x -> y
 -- @
 match_
-  :: forall c z f a rs ss ss'
-  .  ( Match c (BaseConF rs) ss ss'
-     , UncurryRec (MapFromMaybe a rs) z f
-     , DistributeFromMaybe rs )
-  => f -> (Sum ss' a -> z) -> Sum ss a -> z
-match_ f = Sum.match @c @(BaseConF rs) (uncurryRec f . distributeFromMaybe . unBaseConF)
+  :: forall c rs s s' a z f
+  .  MatchSumCurried c rs s s' a z f
+  => f -> Handler a z s s'
+match_ f = matchGBaseSum @c @rs (uncurryRec f)
 
--- | Recursion schemes for generic types.
-class RepToSum a (Rep a) => GToSum a
-instance RepToSum a (Rep a) => GToSum a
+type MatchSum c rs s s' =
+  ( Match c (BaseConF rs) s s'
+  , DistributeFromMaybe rs )
+
+type MatchSumUncurried c rs s s' a t =
+  ( MatchSum c rs s s'
+  , FromRec (MapFromMaybe a rs) t )
+
+type MatchSumCurried c rs s s' a z f =
+  ( MatchSum c rs s s'
+  , UncurryRec (MapFromMaybe a rs) z f )
+
+matchGBaseSum
+  :: forall c rs a z s s'
+  .  MatchSum c rs s s'
+  => (Rec Lazy (MapFromMaybe a rs) -> z) -> Handler a z s s'
+matchGBaseSum f = Sum.match @c @(BaseConF rs)
+  (f . distributeFromMaybe . unBaseConF)
 
 
 -- | Wrap the base functor.
@@ -202,7 +244,7 @@ instance RepToSum a (Rep a) => GToSum a
 -- embed (Cons a as) = a : as
 -- @
 gembed :: (Generic a, GFromSum a) => GBase a a -> a
-gembed = to . sumToRep
+gembed = to . sumToRep . unGBase
 
 -- | Unfold a corecursive structure.
 --
@@ -215,7 +257,7 @@ gembed = to . sumToRep
 -- @
 -- replicate :: Int -> a -> [Int]
 -- replicate 0 _ = []
--- replicate n a = replicate (n-1) a
+-- replicate n a = a : replicate (n-1) a
 -- @
 --
 -- With generic-recursion-schemes, this can be written as
@@ -229,8 +271,9 @@ gembed = to . sumToRep
 gana :: (Generic a, GFromSum a, Functor (GBase a)) => (r -> GBase a r) -> r -> a
 gana f = gana_f where gana_f = gembed . fmap gana_f . f
 
--- | Construct a value in a base functor given a tuple (the constructor of any
--- single-constructor type with the right number and types of fields).
+-- | Construct a value in a base functor given a tuple (which can be any
+-- single-constructor type with the right number and types of fields, see
+-- note on 'match').
 --
 -- @
 -- 'con' \@\":\" (3, Just 4) :: GBase [Int] (Maybe Int)
@@ -239,12 +282,10 @@ gana f = gana_f where gana_f = gembed . fmap gana_f . f
 --
 -- See also 'con_'.
 con
-  :: forall c t a rs ss
-  .  ( Construct c (BaseConF rs) ss
-     , Vinyl.ToRec (MapFromMaybe a rs) t
-     , FactorFromMaybe rs )
-  => t -> Sum ss a
-con = Sum.con @c @(BaseConF rs) . BaseConF . factorFromMaybe . Vinyl.toRec
+  :: forall c e rs a t
+  .  ConstructSumUncurried c e rs a t
+  => t -> GBase e a
+con = GBase . conGBaseSum @c @e @rs . Vinyl.toRec
 
 -- | Curried constructor of a base functor.
 --
@@ -255,13 +296,34 @@ con = Sum.con @c @(BaseConF rs) . BaseConF . factorFromMaybe . Vinyl.toRec
 --
 -- See also 'con'.
 con_
-  :: forall c a rs ss f
-  .  ( Construct c (BaseConF rs) ss
-     , CurryRec (MapFromMaybe a rs) (Sum ss a) f
-     , FactorFromMaybe rs )
+  :: forall c e rs a f
+  .  ConstructSumCurried c e rs a f
   => f
-con_ = curryRec @(MapFromMaybe a rs) @(Sum ss a)
-  (Sum.con @c @(BaseConF rs) @ss . BaseConF . factorFromMaybe)
+con_ = curryRec @(MapFromMaybe a rs) @(GBase e a) (GBase . conGBaseSum @c @e @rs)
+
+type ConstructSum c e rs =
+  ( Generic e
+  , Construct c (BaseConF rs) (GBaseSum e)
+  , FactorFromMaybe rs )
+
+type ConstructSumUncurried c e rs a t =
+  ( ConstructSum c e rs
+  , Vinyl.ToRec (MapFromMaybe a rs) t )
+
+type ConstructSumCurried c e rs a f =
+  ( ConstructSum c e rs
+  , CurryRec (MapFromMaybe a rs) (GBase e a) f )
+
+conGBaseSum
+  :: forall c e rs a
+  .  ConstructSum c e rs
+  => Rec Lazy (MapFromMaybe a rs) -> Sum (GBaseSum e) a
+conGBaseSum = Sum.con @c @(BaseConF rs) . BaseConF . factorFromMaybe
+
+
+-- | Recursion schemes for generic types.
+class RepToSum a (Rep a) => GToSum a
+instance RepToSum a (Rep a) => GToSum a
 
 -- | Corecursion schemes for generic types.
 class SumToRep a (Rep a) => GFromSum a
