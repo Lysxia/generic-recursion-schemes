@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveGeneric #-}
@@ -14,7 +15,9 @@ import Data.Functor.Identity
 import Test.Inspection
 
 import Generic.RecursionSchemes
+#if MIN_VERSION_base(4,10,0)
 import Generic.RecursionSchemes.Labels
+#endif
 
 data Prop a
   = Var a
@@ -25,6 +28,7 @@ data Prop a
   | Iff (Prop a) (Prop a)
   deriving (Functor, Generic)
 
+#if MIN_VERSION_base(4,10,0)
 eval :: (a -> Bool) -> Prop a -> Bool
 eval ctx = eval_ . (coerce :: Prop a -> Prop (Identity a)) where
   eval_ = gcata $ case_
@@ -34,6 +38,18 @@ eval ctx = eval_ . (coerce :: Prop a -> Prop (Identity a)) where
     |. #_Or  --> (||)
     |. #_If  --> (==>)
     |. #_Iff --> (==)
+    )  -- Ugly syntax: overloaded labels must start with a lowercase character
+#endif
+
+eval' :: (a -> Bool) -> Prop a -> Bool
+eval' ctx = eval_ . (coerce :: Prop a -> Prop (Identity a)) where
+  eval_ = gcata $ case_
+    (  match_ @"Var" (ctx . runIdentity)
+    |. match_ @"Not" not
+    |. match_ @"And" (&&)
+    |. match_ @"Or"  (||)
+    |. match_ @"If"  (==>)
+    |. match_ @"Iff" (==)
     )  -- Ugly syntax: overloaded labels must start with a lowercase character
 
 eval_manual :: (a -> Bool) -> Prop a -> Bool
@@ -60,7 +76,7 @@ exampleCtx _ = error "unbound variable"
 
 main :: IO ()
 main =
-  assertEq (eval exampleCtx example) True
+  assertEq (eval' exampleCtx example) True
 
 assertEq :: (Eq a, Show a) => a -> a -> IO ()
 assertEq a b = do
@@ -69,4 +85,7 @@ assertEq a b = do
   else
     fail $ show a ++ " /= " ++ show b
 
-inspect $ 'eval ==- 'eval_manual
+#if MIN_VERSION_base(4,10,0)
+inspect $ 'eval  ==- 'eval_manual
+#endif
+inspect $ 'eval' ==- 'eval_manual
