@@ -521,6 +521,7 @@ instance (ProductToRep' e f (ToRec' e g rs), ProductToRep' e g rs)
 
 instance DecEq e r => ProductToRep' e (M1 i c (K1 j r)) rs where
   productToRep' (Compose (Lazy (FromMaybeF r)) :& rs) = (M1 (K1 (decEq @e @r r r)), rs)
+  {-# INLINE productToRep' #-}
 
 instance ProductToRep' e U1 rs where
   productToRep' rs = (U1, rs)
