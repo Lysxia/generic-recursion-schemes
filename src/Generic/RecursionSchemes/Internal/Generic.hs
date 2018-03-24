@@ -29,7 +29,7 @@ import GHC.TypeLits
 import Data.Vinyl
 
 import Generic.RecursionSchemes.Internal.Sum hiding
-  (case_, caseOf, match, match_, default_)
+  (case_, caseOf, match, match_)
 import qualified Generic.RecursionSchemes.Internal.Sum as Sum
 import Generic.RecursionSchemes.Internal.TyFun
 import Generic.RecursionSchemes.Internal.Vinyl hiding (ToRec, toRec)
@@ -125,6 +125,14 @@ case_ h = Sum.case_ h . unGBase
 -- | Flipped 'case_' so the scrutinee may appear first.
 caseOf :: GBase a r -> Handler r z (ToSum a (Rep a)) '[] -> z
 caseOf = flip case_
+
+-- | 'case_' with a default handler.
+caseDefault :: Handler r z (ToSum a (Rep a)) rs -> (GBase a r -> z) -> GBase a r -> z
+caseDefault h def t = case_ (h |. default_ (\_ -> def t)) t
+
+-- | Flipped 'caseDefault' so the scrutinee may appear first.
+caseDefaultOf :: GBase a r -> Handler r z (ToSum a (Rep a)) rs -> (GBase a r -> z) -> z
+caseDefaultOf t h def = caseDefault h def t
 
 -- | Approximate, simplified signature:
 --

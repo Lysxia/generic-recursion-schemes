@@ -19,10 +19,11 @@ module Generic.RecursionSchemes
   , Handler(..)
   , case_
   , caseOf
+  , caseDefault
+  , caseDefaultOf
   , (|.)
   , match
   , match_
-  , default_
 
     -- ** Constructors
   , con
@@ -48,5 +49,5 @@ module Generic.RecursionSchemes
 
 import Data.Function ((&))
 import Generic.RecursionSchemes.Internal.Generic
-import Generic.RecursionSchemes.Internal.Sum (Sum(..), Handler(..), (|.), default_)
+import Generic.RecursionSchemes.Internal.Sum (Sum(..), Handler(..), (|.))
 import Generic.RecursionSchemes.Internal.Vinyl (Lazy(..), LazyT)
