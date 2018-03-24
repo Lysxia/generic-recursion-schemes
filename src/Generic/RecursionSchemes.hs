@@ -32,8 +32,11 @@ module Generic.RecursionSchemes
     -- ** Inner wrappers
   , BaseConF(..)
   , FromMaybeF(..)
+  , Lazy(..)
+  , LazyT
   ) where
 
 import Data.Function ((&))
 import Generic.RecursionSchemes.Internal.Generic
 import Generic.RecursionSchemes.Internal.Sum hiding (match, con)
+import Generic.RecursionSchemes.Internal.Vinyl (Lazy(..), LazyT)

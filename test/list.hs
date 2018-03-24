@@ -14,7 +14,6 @@ import Data.Vinyl
 import Test.Inspection
 
 import Generic.RecursionSchemes
-import Generic.RecursionSchemes.Internal.Vinyl (Lazy(..))
 
 main :: IO ()
 main = do
