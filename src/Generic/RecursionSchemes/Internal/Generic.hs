@@ -272,12 +272,10 @@ gana f = gana_f where gana_f = gembed . fmap gana_f . f
 --
 -- See also 'con_'.
 con
-  :: forall c t a rs ss
-  .  ( Construct c (BaseConF rs) ss
-     , Vinyl.ToRec (MapFromMaybe a rs) t
-     , FactorFromMaybe rs )
-  => t -> Sum ss a
-con = Sum.con @c @(BaseConF rs) . BaseConF . factorFromMaybe . Vinyl.toRec
+  :: forall c e rs a t
+  .  ConstructSumUncurried c e rs a t
+  => t -> GBase e a
+con = GBase . conGBaseSum @c @e @rs . Vinyl.toRec
 
 -- | Curried constructor of a base functor.
 --
@@ -288,13 +286,29 @@ con = Sum.con @c @(BaseConF rs) . BaseConF . factorFromMaybe . Vinyl.toRec
 --
 -- See also 'con'.
 con_
-  :: forall c a rs ss f
-  .  ( Construct c (BaseConF rs) ss
-     , CurryRec (MapFromMaybe a rs) (Sum ss a) f
-     , FactorFromMaybe rs )
+  :: forall c e rs a f
+  .  ConstructSumCurried c e rs a f
   => f
-con_ = curryRec @(MapFromMaybe a rs) @(Sum ss a)
-  (Sum.con @c @(BaseConF rs) @ss . BaseConF . factorFromMaybe)
+con_ = curryRec @(MapFromMaybe a rs) @(GBase e a) (GBase . conGBaseSum @c @e @rs)
+
+type ConstructSum c e rs =
+  ( Generic e
+  , Construct c (BaseConF rs) (GBaseSum e)
+  , FactorFromMaybe rs )
+
+type ConstructSumUncurried c e rs a t =
+  ( ConstructSum c e rs
+  , Vinyl.ToRec (MapFromMaybe a rs) t )
+
+type ConstructSumCurried c e rs a f =
+  ( ConstructSum c e rs
+  , CurryRec (MapFromMaybe a rs) (GBase e a) f )
+
+conGBaseSum
+  :: forall c e rs a
+  .  ConstructSum c e rs
+  => Rec Lazy (MapFromMaybe a rs) -> Sum (GBaseSum e) a
+conGBaseSum = Sum.con @c @(BaseConF rs) . BaseConF . factorFromMaybe
 
 -- | Corecursion schemes for generic types.
 class SumToRep a (Rep a) => GFromSum a

@@ -21,6 +21,12 @@ module Generic.RecursionSchemes.Internal
   , FromMaybeF(..)
   , Lazy(..)
   , LazyT
+
+    -- * Auxiliary synonyms
+
+  , ConstructSumUncurried
+  , ConstructSumCurried
+  , ConstructSum
   ) where
 
 import Generic.RecursionSchemes.Internal.Sum (Sum(..), Handler(..))
