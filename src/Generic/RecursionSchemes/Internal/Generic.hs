@@ -117,7 +117,8 @@ gcata f = gcata_f where gcata_f = f . fmap gcata_f . gproject
 --   -> Handler _ z (ss1 ++ (cname, _) ++ ss2) (ss1 ++ ss2)
 -- @
 --
--- 'match' must be applied to a constructor name as a type-level string (@cname@).
+-- 'match' must be applied to a constructor name as a type-level string
+-- (@cname :: 'Symbol'@).
 -- The value-level argument (of type @t -> z@) is one branch in a
 -- pattern-match construct for a base functor represented as an extensible
 -- 'Sum'; the branch must be given as an uncurried function that takes a tuple.
