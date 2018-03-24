@@ -106,6 +106,8 @@ caseOf = flip case_
 (|.) :: Handler a z s s' -> Handler a z s' s'' -> Handler a z s s''
 Handler h1 |. Handler h2 = Handler (h1 . h2)
 
+infixr 9 |.
+
 -- | Handle one alternative.
 match :: forall c f a s s' z. Match c f s s' => (f a -> z) -> Handler a z s s'
 match = Handler . match_ @c
