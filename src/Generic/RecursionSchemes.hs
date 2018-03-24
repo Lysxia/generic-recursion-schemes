@@ -16,11 +16,11 @@ module Generic.RecursionSchemes
 
     -- ** Destructors
   , Handler()
-  , case_
-  , caseOf
-  , caseDefault
-  , caseDefaultOf
   , (|.)
+  , case_
+  , caseDefault
+  , caseOf
+  , caseDefaultOf
   , match
   , match_
 
