@@ -28,7 +28,7 @@ import GHC.TypeLits
 
 import Data.Vinyl
 
-import Generic.RecursionSchemes.Internal.Sum hiding (match, con)
+import Generic.RecursionSchemes.Internal.Sum hiding (case_, match, match_)
 import qualified Generic.RecursionSchemes.Internal.Sum as Sum
 import Generic.RecursionSchemes.Internal.TyFun
 import Generic.RecursionSchemes.Internal.Vinyl hiding (ToRec, toRec)
@@ -63,6 +63,16 @@ import qualified Generic.RecursionSchemes.Internal.Vinyl as Vinyl
 -- type ListF a = 'GBase' ['Identity' a]
 -- @
 newtype GBase a x = GBase { unGBase :: Sum (ToSum a (Rep a)) x }
+
+instance FunctorSum (ToSum a (Rep a)) => Functor (GBase a) where
+  fmap f = GBase . fmap f . unGBase
+
+instance FoldableSum (ToSum a (Rep a)) => Foldable (GBase a) where
+  foldr f b = foldr f b . unGBase
+
+instance TraversableSum (ToSum a (Rep a)) => Traversable (GBase a) where
+  traverse f = fmap GBase . traverse f . unGBase
+
 
 -- | Unwrap the base functor.
 --
@@ -106,6 +116,9 @@ gproject = GBase . repToSum . from
 -- @
 gcata :: (Generic a, GToSum a, Functor (GBase a)) => (GBase a r -> r) -> a -> r
 gcata f = gcata_f where gcata_f = f . fmap gcata_f . gproject
+
+case_ :: Handler r z (ToSum a (Rep a)) '[] -> GBase a r -> z
+case_ h = Sum.case_ h . unGBase
 
 -- | Approximate, simplified signature:
 --

@@ -29,15 +29,11 @@ data Sum (rs :: [(Symbol, * -> *)]) a where
   There :: Sum rs a -> Sum ('(s, f) ': rs) a
 
 -- | Pattern match on the empty sum.
+emptySum :: Sum '[] a -> b
+emptySum v = case v of {}
+
 -- This can be used together with 'Generic.RecursionSchemes.match'
 -- or 'Generic.RecursionSchemes.match_' to emulate a @case@ expression.
-case_ :: Sum '[] a -> b
-case_ v = case v of {}
-
--- | 'case_' with a default branch that will be applied if no
--- other branch matches.
-caseDefault :: (Sum rs a -> z) -> Sum rs a -> z
-caseDefault = id
 
 instance FunctorSum rs => Functor (Sum rs) where
   fmap :: (a -> b) -> Sum rs a -> Sum rs b
@@ -47,7 +43,7 @@ class FunctorSum rs where
   fmapSum :: (a -> b) -> Sum rs a -> Sum rs b
 
 instance FunctorSum '[] where
-  fmapSum _ = case_
+  fmapSum _ = emptySum
 
 instance (Functor f, FunctorSum rs) => FunctorSum ('(s, f) ': rs) where
   fmapSum f (Here a) = Here (fmap f a)
@@ -60,7 +56,7 @@ class FoldableSum rs where
   foldrSum :: (a -> b -> b) -> b -> Sum rs a -> b
 
 instance FoldableSum '[] where
-  foldrSum _ _ = case_
+  foldrSum _ _ = emptySum
 
 instance (Foldable f, FoldableSum rs) => FoldableSum ('(s, f) ': rs) where
   foldrSum f b (Here a) = foldr f b a
@@ -73,7 +69,7 @@ class (FunctorSum rs, FoldableSum rs) => TraversableSum rs where
   traverseSum :: Applicative m => (a -> m b) -> Sum rs a -> m (Sum rs b)
 
 instance TraversableSum '[] where
-  traverseSum _ = case_
+  traverseSum _ = emptySum
 
 instance (Traversable f, TraversableSum rs) => TraversableSum ('(s, f) ': rs) where
   traverseSum f (Here a) = Here <$> traverse f a
@@ -86,6 +82,9 @@ instance (Traversable f, TraversableSum rs) => TraversableSum ('(s, f) ': rs) wh
 -- that are /not/ handled by this handler (and so will be passed to another
 -- handler), @a@ is the sum functor's parameter, and @z@ is the result type of
 -- the handler.
+--
+-- A total handler (handling all cases) has the last argument equal to @'[]@:
+-- @'Handler' a z s '[]@.
 newtype Handler a z s s' = Handler
   { unHandler :: (Sum s' a -> z) -> Sum s a -> z }
 
@@ -94,13 +93,22 @@ instance Category (Handler a z) where
   id = Handler id
   (.) = flip (|.)
 
+-- | Apply a total handler.
+case_ :: Handler a z s '[] -> Sum s a -> z
+case_ (Handler h) = h emptySum
+
 -- | Composition of handlers: the first handler passes what it can't handle to
 -- the next one.
 (|.) :: Handler a z s s' -> Handler a z s' s'' -> Handler a z s s''
 Handler h1 |. Handler h2 = Handler (h1 . h2)
 
+-- | Handle one alternative.
 match :: forall c f a s s' z. Match c f s s' => (f a -> z) -> Handler a z s s'
 match = Handler . match_ @c
+
+-- | Default handler that always matches.
+default_ :: (Sum s a -> z) -> Handler a z s '[]
+default_ h = Handler (const h)
 
 
 class Match c f rs rs' where
