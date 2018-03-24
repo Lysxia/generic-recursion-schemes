@@ -92,8 +92,25 @@ gproject = repToSum . from
 gcata :: (Generic a, GToSum a, Functor (GBase a)) => (GBase a r -> r) -> a -> r
 gcata f = gcata_f where gcata_f = f . fmap gcata_f . gproject
 
--- | One branch in a pattern-match construct for a base functor represented
--- as an extensible 'Sum'; the branch is given as an uncurried function.
+-- | Approximate, simplified signature:
+--
+-- @
+-- match
+--   :: forall cname t z ss1 ss2
+--   .  _omittedConstraints
+--   => (t -> z)
+--   -> (Sum (ss1               ++ ss2) _ -> z)
+--   -> (Sum (ss1 ++ (cname, _) ++ ss2) _ -> z)
+-- @
+--
+-- 'match' must be applied to a constructor name as a type-level string (@cname@).
+-- The first value-level argument (of type @t -> z@) is one branch in a
+-- pattern-match construct for a base functor represented as an extensible
+-- 'Sum'; the branch must be given as an uncurried function that takes a tuple
+-- (in any type with a single constructor having the right number and types of
+-- fields).
+-- The second argument (@Sum (ss1 ++ ss2) _ -> z@) represents the remaining
+-- branches.
 --
 -- See also 'match_'.
 --
@@ -111,9 +128,9 @@ gcata f = gcata_f where gcata_f = f . fmap gcata_f . gproject
 --
 -- @
 -- 'case_'
---   'Data.Function.&' 'match' \@\"MyConstr0\" (\\()     -> e)      -- 0 field: () (or any equivalent 'Generic' type)
---   'Data.Function.&' 'match' \@\"MyConstr1\" (\\a      -> f a)    -- 1 field: unwrapped
 --   'Data.Function.&' 'match' \@\"MyConstr2\" (\\(a, b) -> g a b)  -- 2 fields or more: tuple (or any equivalent 'Generic' product type)
+--   'Data.Function.&' 'match' \@\"MyConstr1\" (\\a      -> f a)    -- 1 field: unwrapped
+--   'Data.Function.&' 'match' \@\"MyConstr0\" (\\()     -> e)      -- 0 field: () (or any equivalent 'Generic' type)
 --   -- in any order
 --   :: 'GBase' MyType x -> y
 -- @
@@ -167,23 +184,34 @@ gembed = to . sumToRep
 
 -- | Unfold a corecursive structure.
 --
--- For example, consider this definition of the Fibonacci sequence, given the
--- first two elements:
+-- For example, consider 'replicate'
 --
 -- @
--- fib :: (Int, Int) -> [Int]
--- fib (a0, a1) = a0 : fib (a1, a2)
---   where a2 = a0 + a1
+-- replicate :: Int -> a -> [Int]
+-- replicate 0 _ = []
+-- replicate n a = replicate (n-1) a
 -- @
 --
 -- With generic-recursion-schemes, this can be written as
 --
 -- @
--- fib :: (Int, Int) -> [Int]
+-- replicate :: Int -> a -> [Int]
+-- replicate n a = 'gana' alg n where
+--   alg 0 = 'con_' @"[]"
+--   alg n = 'con_' @":" a (n-1)
 -- @
 gana :: (Generic a, GFromSum a, Functor (GBase a)) => (r -> GBase a r) -> r -> a
 gana f = gana_f where gana_f = gembed . fmap gana_f . f
 
+-- | Construct a value in a base functor given a tuple (the constructor of any
+-- single-constructor type with the right number and types of fields).
+--
+-- @
+-- 'con' @":" (3, Just 4) :: GBase [Int] (Maybe Int)
+-- -- equivalent to (Cons 3 (Just 4) :: ListF Int (Maybe Int))
+-- @
+--
+-- See also 'con_'.
 con
   :: forall c t a rs ss
   .  ( Construct c (BaseConF rs) ss
@@ -192,6 +220,14 @@ con
   => t -> Sum ss a
 con = Sum.con @c @(BaseConF rs) . BaseConF . factorFromMaybe . Vinyl.toRec
 
+-- | Curried constructor of a base functor.
+--
+-- @
+-- 'con_' @":" 3 (Just 4) :: GBase [Int] (Maybe Int)
+-- -- equivalent to (Cons 3 (Just 4) :: ListF Int (Maybe Int))
+-- @
+--
+-- See also 'con'.
 con_
   :: forall c a rs ss f
   .  ( Construct c (BaseConF rs) ss
