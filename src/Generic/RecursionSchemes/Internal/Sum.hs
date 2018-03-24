@@ -27,10 +27,15 @@ data Sum (rs :: [(Symbol, * -> *)]) a where
   There :: Sum rs a -> Sum ('(s, f) ': rs) a
 
 -- | Pattern match on the empty sum.
--- This can be used together with 'Generic.RecursionSchemes.match' and derived functions
--- to emulate a @case@ expression.
+-- This can be used together with 'Generic.RecursionSchemes.match'
+-- or 'Generic.RecursionSchemes.match_' to emulate a @case@ expression.
 case_ :: Sum '[] a -> b
 case_ v = case v of {}
+
+-- | 'case_' with a default branch that will be applied if no
+-- other branch matches.
+caseDefault :: (Sum rs a -> z) -> Sum rs a -> z
+caseDefault = id
 
 instance FunctorSum rs => Functor (Sum rs) where
   fmap :: (a -> b) -> Sum rs a -> Sum rs b

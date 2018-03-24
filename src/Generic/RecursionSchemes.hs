@@ -19,6 +19,7 @@ module Generic.RecursionSchemes
 
     -- ** Destructors
   , case_
+  , caseDefault
   , match
   , match_
 

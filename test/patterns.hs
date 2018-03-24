@@ -64,9 +64,7 @@ size1_manual t = go t id where
 
 size1 :: Tree -> Int
 size1 t = gcata alg t id where
-  alg = case_
-    & match @"End"  (\() k -> k 1)
-    & match @"Leaf" (\_  k -> k 1)
+  alg = caseDefault (\_ k -> k 1)
     & match @"Node" (\(ns, ms) k -> ns (\n -> ms (\m -> k $! n + m + 1)))
 
 size1' :: Tree -> Int
