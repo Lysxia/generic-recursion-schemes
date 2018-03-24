@@ -24,6 +24,10 @@ module Generic.RecursionSchemes.Internal
 
     -- * Auxiliary synonyms
 
+  , MatchSumUncurried
+  , MatchSumCurried
+  , MatchSum
+
   , ConstructSumUncurried
   , ConstructSumCurried
   , ConstructSum

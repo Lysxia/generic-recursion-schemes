@@ -143,10 +143,10 @@ caseDefaultOf t h def = caseDefault h def t
 --
 -- @
 -- match
---   :: forall cname t z ss1 ss2
+--   :: forall cname t z s1 s2
 --   .  _omittedConstraints
 --   => (t -> z)
---   -> Handler _ z (ss1 ++ (cname, _) ++ ss2) (ss1 ++ ss2)
+--   -> Handler _ z (s1 ++ cname ++ s2) (s1 ++ s2)
 -- @
 --
 -- 'match' must be applied to a constructor name as a type-level string
@@ -186,14 +186,10 @@ caseDefaultOf t h def = caseDefault h def t
 --   ) :: 'GBase' MyType x -> y
 -- @
 match
-  :: forall c t z a rs ss ss'
-  .  ( Match c (BaseConF rs) ss ss'
-     , FromRec (MapFromMaybe a rs) t
-     , DistributeFromMaybe rs
-     )
-  => (t -> z) -> Handler a z ss ss'
-match f = Sum.match @c @(BaseConF rs)
-  (f . fromRec . distributeFromMaybe . unBaseConF)
+  :: forall c rs s s' a z t
+  .  MatchSumUncurried c rs s s' a t
+  => (t -> z) -> Handler a z s s'
+match f = matchGBaseSum @c @rs (f . fromRec)
 
 -- | One branch in a pattern-match construct for a base functor represented as an
 -- extensible 'Sum'; the branch is given as a curried function.
@@ -209,17 +205,29 @@ match f = Sum.match @c @(BaseConF rs)
 --   ) :: 'GBase' MyType x -> y
 -- @
 match_
-  :: forall c z f a rs ss ss'
-  .  ( Match c (BaseConF rs) ss ss'
-     , UncurryRec (MapFromMaybe a rs) z f
-     , DistributeFromMaybe rs )
-  => f -> Handler a z ss ss'
-match_ f = Sum.match @c @(BaseConF rs)
-  (uncurryRec f . distributeFromMaybe . unBaseConF)
+  :: forall c rs s s' a z f
+  .  MatchSumCurried c rs s s' a z f
+  => f -> Handler a z s s'
+match_ f = matchGBaseSum @c @rs (uncurryRec f)
 
--- | Recursion schemes for generic types.
-class RepToSum a (Rep a) => GToSum a
-instance RepToSum a (Rep a) => GToSum a
+type MatchSum c rs s s' =
+  ( Match c (BaseConF rs) s s'
+  , DistributeFromMaybe rs )
+
+type MatchSumUncurried c rs s s' a t =
+  ( MatchSum c rs s s'
+  , FromRec (MapFromMaybe a rs) t )
+
+type MatchSumCurried c rs s s' a z f =
+  ( MatchSum c rs s s'
+  , UncurryRec (MapFromMaybe a rs) z f )
+
+matchGBaseSum
+  :: forall c rs a z s s'
+  .  MatchSum c rs s s'
+  => (Rec Lazy (MapFromMaybe a rs) -> z) -> Handler a z s s'
+matchGBaseSum f = Sum.match @c @(BaseConF rs)
+  (f . distributeFromMaybe . unBaseConF)
 
 
 -- | Wrap the base functor.
@@ -309,6 +317,11 @@ conGBaseSum
   .  ConstructSum c e rs
   => Rec Lazy (MapFromMaybe a rs) -> Sum (GBaseSum e) a
 conGBaseSum = Sum.con @c @(BaseConF rs) . BaseConF . factorFromMaybe
+
+
+-- | Recursion schemes for generic types.
+class RepToSum a (Rep a) => GToSum a
+instance RepToSum a (Rep a) => GToSum a
 
 -- | Corecursion schemes for generic types.
 class SumToRep a (Rep a) => GFromSum a
