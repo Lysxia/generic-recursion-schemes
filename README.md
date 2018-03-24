@@ -7,7 +7,8 @@ This library is compatible with the
 library, and uses GHC Generics instead of Template Haskell to derive base
 functors and recursion combinators.
 
-`gcata` can also be used directly, without defining `Recursive` instances.
+`gcata` and `gana` can also be used directly, without defining `Recursive` or
+`Corecursive` instances.
 
 ```haskell
 {-# LANGUAGE DeriveGeneric #-}
@@ -25,8 +26,12 @@ type instance Base MyTree = GBase MyTree
 instance Recursive MyTree where
   project = gproject
 
+instance Corecursive MyTree where
+  embed = gembed
+
 toList :: MyTree -> [Int]
-toList = cata $ case_
-  & match @"Leaf" (\n -> [n])
-  & match @"Node" (\(ns, ms) -> ns ++ ms)
+toList = gcata $ case_
+  (  match @"Leaf" (\n -> [n])
+  |. match @"Node" (\(ns, ms) -> ns ++ ms)
+  )
 ```
