@@ -34,7 +34,6 @@ import qualified Generic.RecursionSchemes.Internal.Sum as Sum
 import Generic.RecursionSchemes.Internal.TyFun
 import Generic.RecursionSchemes.Internal.Vinyl hiding (ToRec, toRec)
 import qualified Generic.RecursionSchemes.Internal.Vinyl as Vinyl
-import Generic.RecursionSchemes.Internal.Labels
 
 -- | The base functor of a generic type @a@.
 --
@@ -211,24 +210,6 @@ match_
   .  MatchSumCurried c rs s s' a z f
   => f -> Handler a z s s'
 match_ f = matchGBaseSum @c @rs (uncurryRec f)
-
--- | An infix variant of 'match_' to specify the constructor name via
--- the @OverloadedLabels@ extension.
---
--- @
--- 'case_'
---   (  \#MyConstr0 '-->'          e
---   '|.' \#MyConstr1 '-->' (\\a   -> f a)
---   '|.' \#MyConstr2 '-->' (\\a b -> g a b)
---   )
--- @
-(-->)
-  :: forall c rs s s' a z f
-  .  MatchSumCurried c rs s s' a z f
-  => Pattern c -> f -> Handler a z s s'
-(-->) _ = match_ @c @rs
-
-infix 3 -->
 
 type MatchSum c rs s s' =
   ( Match c (BaseConF rs) s s'

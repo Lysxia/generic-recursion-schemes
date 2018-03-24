@@ -25,16 +25,11 @@ module Generic.RecursionSchemes
   , caseDefaultOf
   , match
   , match_
-  , (-->)
 
     -- ** Constructors
   , con
   , con_
-
-    -- * Internals
-  , Pattern()
   ) where
 
 import Generic.RecursionSchemes.Internal.Generic
-import Generic.RecursionSchemes.Internal.Labels
 import Generic.RecursionSchemes.Internal.Sum (Handler(), (|.))

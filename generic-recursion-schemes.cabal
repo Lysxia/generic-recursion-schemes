@@ -24,10 +24,13 @@ library
     Generic.RecursionSchemes
     Generic.RecursionSchemes.Internal
     Generic.RecursionSchemes.Internal.Generic
-    Generic.RecursionSchemes.Internal.Labels
     Generic.RecursionSchemes.Internal.Sum
     Generic.RecursionSchemes.Internal.TyFun
     Generic.RecursionSchemes.Internal.Vinyl
+  if impl(ghc >= 8.2)
+    exposed-modules:
+      Generic.RecursionSchemes.Labels
+      Generic.RecursionSchemes.Internal.Labels
   build-depends:
     vinyl,
     base >= 4.9 && < 5

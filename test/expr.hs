@@ -30,6 +30,7 @@ import Test.Inspection (inspect, (==-))
 import Text.Read (readMaybe)
 
 import Generic.RecursionSchemes
+import Generic.RecursionSchemes.Labels
 
 newtype Variable = V Int
 

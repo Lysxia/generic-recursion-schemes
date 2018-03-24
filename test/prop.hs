@@ -14,6 +14,7 @@ import Data.Functor.Identity
 import Test.Inspection
 
 import Generic.RecursionSchemes
+import Generic.RecursionSchemes.Labels
 
 data Prop a
   = Var a
