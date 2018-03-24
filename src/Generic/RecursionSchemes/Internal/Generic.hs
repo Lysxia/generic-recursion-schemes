@@ -197,8 +197,8 @@ gembed = to . sumToRep
 -- @
 -- replicate :: Int -> a -> [Int]
 -- replicate n a = 'gana' alg n where
---   alg 0 = 'con_' @"[]"
---   alg n = 'con_' @":" a (n-1)
+--   alg 0 = 'con_' \@\"[]\"
+--   alg n = 'con_' \@\":\" a (n-1)
 -- @
 gana :: (Generic a, GFromSum a, Functor (GBase a)) => (r -> GBase a r) -> r -> a
 gana f = gana_f where gana_f = gembed . fmap gana_f . f
@@ -207,7 +207,7 @@ gana f = gana_f where gana_f = gembed . fmap gana_f . f
 -- single-constructor type with the right number and types of fields).
 --
 -- @
--- 'con' @":" (3, Just 4) :: GBase [Int] (Maybe Int)
+-- 'con' \@\":\" (3, Just 4) :: GBase [Int] (Maybe Int)
 -- -- equivalent to (Cons 3 (Just 4) :: ListF Int (Maybe Int))
 -- @
 --
@@ -223,7 +223,7 @@ con = Sum.con @c @(BaseConF rs) . BaseConF . factorFromMaybe . Vinyl.toRec
 -- | Curried constructor of a base functor.
 --
 -- @
--- 'con_' @":" 3 (Just 4) :: GBase [Int] (Maybe Int)
+-- 'con_' \@\":\" 3 (Just 4) :: GBase [Int] (Maybe Int)
 -- -- equivalent to (Cons 3 (Just 4) :: ListF Int (Maybe Int))
 -- @
 --
