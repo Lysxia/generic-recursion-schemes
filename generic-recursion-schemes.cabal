@@ -16,7 +16,7 @@ category:            Other
 build-type:          Simple
 extra-source-files:  README.md
 cabal-version:       >=1.10
-tested-with:         GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.1
+tested-with:         GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.5, GHC == 8.8.2
 
 library
   hs-source-dirs:      src
@@ -31,6 +31,9 @@ library
     exposed-modules:
       Generic.RecursionSchemes.Labels
       Generic.RecursionSchemes.Internal.Labels
+  if impl(ghc < 8.8)
+    build-depends:
+      vinyl < 0.12
   build-depends:
     vinyl,
     base >= 4.9 && < 5
@@ -60,6 +63,8 @@ test-suite patterns-test
   ghc-options: -Wall
   default-language: Haskell2010
   type: exitcode-stdio-1.0
+  if impl(ghc >= 8.6)
+    buildable: False
 
 test-suite prop-test
   hs-source-dirs: test
@@ -75,7 +80,7 @@ test-suite prop-test
 test-suite expr-test
   hs-source-dirs: test
   main-is: expr.hs
-  if impl(ghc >= 8.2)
+  if impl(ghc >= 8.2 && < 8.6)
     build-depends:
       generic-recursion-schemes,
       inspection-testing,
