@@ -19,6 +19,8 @@
 
 module Generic.RecursionSchemes.Internal.TyFun where
 
+import Data.Kind
+
 -- | This type is different from @('Data.Type.Equality.==')@ from
 -- "Data.Type.Equality", which has an extra clause
 -- @f a == g b = f == g && a == b@ since GHC 8.4 that prevents
@@ -39,7 +41,7 @@ instance IsBool 'False where
 class (eqab ~ (a == b)) => DecEq' a b eqab where
   decEq :: ((a ~ b) => r) -> ((a == b) ~ 'False => r) -> r
 
-instance (a ~ b) => DecEq' a (b :: *) 'True where
+instance (a ~ b) => DecEq' a (b :: Type) 'True where
   decEq a _ = a
 
 instance ('False ~ (a == b)) => DecEq' a b 'False where
@@ -47,7 +49,7 @@ instance ('False ~ (a == b)) => DecEq' a b 'False where
 
 type DecEq a b = DecEq' a b (a == b)
 
-type family FromMaybe a (m :: Maybe *) where
+type family FromMaybe a (m :: Maybe Type) where
   FromMaybe a 'Nothing  = a
   FromMaybe a ('Just b) = b
 
@@ -59,4 +61,3 @@ instance IsMaybe 'Nothing where
 
 instance IsMaybe ('Just b) where
   maybe' _ a = a @b
-
