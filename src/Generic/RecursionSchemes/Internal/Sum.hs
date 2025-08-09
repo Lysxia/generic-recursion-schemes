@@ -1,6 +1,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE EmptyCase #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE InstanceSigs #-}
@@ -19,12 +20,13 @@ module Generic.RecursionSchemes.Internal.Sum where
 
 import Control.Category (Category)
 import qualified Control.Category as Category
+import Data.Kind
 import GHC.TypeLits
 
 import Generic.RecursionSchemes.Internal.TyFun (type (==))
 
 -- | A tagged sum of functors.
-data Sum (rs :: [(Symbol, * -> *)]) a where
+data Sum (rs :: [(Symbol, Type -> Type)]) a where
   Here :: f a -> Sum ('(s, f) ': rs) a
   There :: Sum rs a -> Sum ('(s, f) ': rs) a
 

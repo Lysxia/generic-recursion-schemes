@@ -22,6 +22,7 @@ module Generic.RecursionSchemes.Internal.Generic where
 import Control.Monad ((>=>))
 import Data.Bifunctor
 import Data.Functor.Compose
+import Data.Kind
 import Data.Type.Bool
 import GHC.Generics
 import GHC.TypeLits
@@ -345,7 +346,7 @@ class SumToRep a (Rep a) => GFromSum a
 instance SumToRep a (Rep a) => GFromSum a
 
 
-type family MapFromMaybe a (rs :: [Maybe *]) :: [*] where
+type family MapFromMaybe a (rs :: [Maybe Type]) :: [Type] where
   MapFromMaybe a '[] = '[]
   MapFromMaybe a (r ': rs) = FromMaybe a r ': MapFromMaybe a rs
 
@@ -407,7 +408,7 @@ instance (MapRec IsMaybe rs, FoldRec IsMaybe rs, TraverseRec IsMaybe rs)
 
 type ToRec e f = ToRec' e f '[]
 
-type family ToRec' (e :: *) (f :: k -> *) (rs :: [Maybe *]) :: [Maybe *]
+type family ToRec' (e :: Type) (f :: k -> Type) (rs :: [Maybe Type]) :: [Maybe Type]
 type instance ToRec' e (f :*: g) rs = ToRec' e f (ToRec' e g rs)
 type instance ToRec' e (M1 i c (K1 j r)) rs =
   (If (e == r) 'Nothing ('Just r)) ': rs
@@ -415,7 +416,7 @@ type instance ToRec' e U1 rs = rs
 
 type ToSum e f = ToSum' e f '[]
 
-type family ToSum' e (f :: k -> *) (rs :: [(Symbol, * -> *)]) :: [(Symbol, * -> *)]
+type family ToSum' e (f :: k -> Type) (rs :: [(Symbol, Type -> Type)]) :: [(Symbol, Type -> Type)]
 type instance ToSum' e (f :+: g) rs = ToSum' e f (ToSum' e g rs)
 type instance ToSum' e (M1 D c f) rs = ToSum' e f rs
 type instance ToSum' e (M1 C c f) rs = '(CName c, BaseConF (ToRec e f)) ': rs
