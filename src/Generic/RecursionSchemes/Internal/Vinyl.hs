@@ -19,7 +19,6 @@
 
 module Generic.RecursionSchemes.Internal.Vinyl where
 
-import Control.Applicative
 import Data.Bifunctor
 import Data.Functor.Compose
 import GHC.Generics
