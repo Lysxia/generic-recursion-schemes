@@ -1,5 +1,6 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveFoldable #-}
@@ -19,7 +20,9 @@
 
 module Generic.RecursionSchemes.Internal.Vinyl where
 
+#if __GLASGOW_HASKELL__ < 906
 import Control.Applicative
+#endif
 import Data.Bifunctor
 import Data.Functor.Compose
 import GHC.Generics
